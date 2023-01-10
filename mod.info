@@ -1,4 +1,4 @@
 name=EXTERMINATOR
 id=EXM
-description=Shows ZombieCount so you can kill them all
+description=Find all the zombies and exterminate them to win. Adds a zombie scanner item to detect remaining zombies in a cell. Turn off respawns for this mod to work properly
 poster=poster.png
