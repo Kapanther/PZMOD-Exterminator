@@ -1,4 +1,4 @@
-# Exterminator
+# Exterminator - Project Zomboid Mod
 ## Overview 
 Exterminator is a Project Zomboid mod that will add mechanics to the game to allow players to remove all of the zombies from the map as a victory condition. This includes various zombie scanners and lures as well as Map features to track clearance of zombies.
 
