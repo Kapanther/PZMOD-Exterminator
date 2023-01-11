@@ -21,8 +21,8 @@ The following settings will need to be modified/checked to ensure the mod can wo
 ## In Game Map - Cleared Status
 The maps has grid squares 300x300 tiles that can be cleared by players exterminating all the zombies. This is managed by the mod by adding a colour or outline to each map grid to indicate it has been cleared. Zombies from other grid squares may wander into these squares again. (consider handling for this later)
 
-33 Notificaion of Victory Conditions
-Notify players when all zombies have been Exterminatede
+## Notificaion of Victory Conditions
+Notify players when all zombies have been Exterminated
 
 ## Zombie Scanner
 The scanner will required the electronics skill to create and the an electronics workbench. Plus key components listed below.
@@ -52,3 +52,10 @@ A count is displayed to the user of zombies present
 - 2x Computer
 - 1x Metal Tool Box
 - 1x Battery
+
+## Installation Instructions
+Copy all of these files into the 
+
+""c:\users\<username>\Zomboid\Mods\Exterminator" 
+
+folder (create folder if it doesnt exist)
