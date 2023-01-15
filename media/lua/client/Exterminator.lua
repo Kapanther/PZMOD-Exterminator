@@ -40,17 +40,23 @@ local function getCellData(playerX,PlayerY)
 end
 
 local function drawZombieCount()
+	--Check if they are holding a zombie scanner
+	
 	if player then
-		local playerX = floor(player:getX()); --because getX returns float
-		local playerY = floor(player:getY());
+		local isHoldingZombieScanner = player:getInventory():contains(ZombieScannerMK1);
+		--if isHoldingZombieScanner then
+			local playerX = floor(player:getX()); --because getX returns float
+			local playerY = floor(player:getY());
 
-		getCellData(playerX,playerY)
-		text_count =  "Zcount = " .. cache_celldata
-		text_density =  "Density = " .. cache_gridZombieDensity
-		text_spawned =  "Spawned = " .. cache_gridZombieSpawned
-		textManager:DrawString(UIFont.Large, screenX, screenY, text_count, 0.1, 0.8, 1, 1);
-		textManager:DrawString(UIFont.Large, screenX, screenY + 30, text_density, 0.1, 0.8, 1, 1);
-		textManager:DrawString(UIFont.Large, screenX, screenY + 60, text_spawned, 0.1, 0.8, 1, 1);
+			getCellData(playerX,playerY)
+			text_count =  "Zcount = " .. cache_celldata
+			text_density =  "Density = " .. cache_gridZombieDensity
+			text_spawned =  "Spawned = " .. cache_gridZombieSpawned
+			textManager:DrawString(UIFont.Large, screenX, screenY, text_count, 0.1, 0.8, 1, 1);
+			textManager:DrawString(UIFont.Large, screenX, screenY + 30, text_density, 0.1, 0.8, 1, 1);
+			textManager:DrawString(UIFont.Large, screenX, screenY + 60, text_spawned, 0.1, 0.8, 1, 1);
+			textManager:DrawString(UIFont.Large, screenX, screenY + 90, isHoldingZombieScanner, 0.1, 0.8, 1, 1);
+		--end
 	end
 end
 

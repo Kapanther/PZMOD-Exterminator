@@ -1,0 +1,8 @@
+module Exterminator {
+
+	model ZombieScannerMK1
+	{
+		mesh = WorldItems/ZombieScannerMK1,
+		texture = ZombieScannerMK1,
+	}
+}

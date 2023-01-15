@@ -1,9 +1,12 @@
-module Base
+module Exterminator
 {
+	imports {
+		Base
+	}
     
 	item ZombieScannerMK1
 	{
-	    DisplayCategory = LightSource,
+	    DisplayCategory = Electrical,
 		LightDistance	=	25,
 		Weight	=	1,
 		DisappearOnUse	=	FALSE,
