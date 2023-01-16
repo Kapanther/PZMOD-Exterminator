@@ -43,8 +43,8 @@ local function drawZombieCount()
 	--Check if they are holding a zombie scanner
 	
 	if player then
-		local isHoldingZombieScanner = player:getInventory():contains(ZombieScannerMK1);
-		--if isHoldingZombieScanner then
+		local isHoldingZombieScanner = player:getInventory():contains("Exterminator.ZombieScannerMK1"); --todo zombie scanner needs to be detected in hand
+		if isHoldingZombieScanner then
 			local playerX = floor(player:getX()); --because getX returns float
 			local playerY = floor(player:getY());
 
@@ -55,8 +55,8 @@ local function drawZombieCount()
 			textManager:DrawString(UIFont.Large, screenX, screenY, text_count, 0.1, 0.8, 1, 1);
 			textManager:DrawString(UIFont.Large, screenX, screenY + 30, text_density, 0.1, 0.8, 1, 1);
 			textManager:DrawString(UIFont.Large, screenX, screenY + 60, text_spawned, 0.1, 0.8, 1, 1);
-			textManager:DrawString(UIFont.Large, screenX, screenY + 90, isHoldingZombieScanner, 0.1, 0.8, 1, 1);
-		--end
+			textManager:DrawString(UIFont.Large, screenX, screenY + 90, tostring(isHoldingZombieScanner), 0.1, 0.8, 1, 1);
+		end
 	end
 end
 
