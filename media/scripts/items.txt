@@ -1,29 +1,22 @@
 module Exterminator
 {
-	imports {
+    imports {
 		Base
 	}
-    
 	item ZombieScannerMK1
 	{
-	    DisplayCategory = Electrical,
-		LightDistance	=	25,
-		Weight	=	1,
-		DisappearOnUse	=	FALSE,
-		Type	=	Drainable,
-		TorchCone	=	TRUE,
-		UseDelta	=	0.0009,
-		LightStrength	=	2,
-		TorchDot = 0.66,
-		DisplayName	=	Zombie Scanner MKI,
-		ActivatedItem	=	TRUE,
-		Icon	=	Flashlight,
-		MetalValue = 10,
-		cantBeConsolided = TRUE,
-		StaticModel = ZombieScannerMK1,
-		primaryAnimMask = HoldingTorchRight,
-        secondaryAnimMask = HoldingTorchLeft,
-        WorldStaticModel = ZombieScannerMK1_ground,
+		DisplayName			= Zombie Scanner MKI,
+	    DisplayCategory		= Electronics,
+		Type				= Drainable,
+		Weight				= 1,	
+		ActivatedItem		= TRUE,
+		Icon				= Flashlight,
+		MetalValue			= 10,
+		cantBeConsolided	= TRUE,
+		StaticModel			= ZombieScannerMK1,
+		primaryAnimMask		= HoldingTorchRight,
+        secondaryAnimMask	= HoldingTorchLeft,
+        WorldStaticModel	= ZombieScannerMK1_ground,
 	}
 
 }

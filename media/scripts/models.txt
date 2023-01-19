@@ -1,8 +1,8 @@
-module Exterminator {
+module Base {
 
 	model ZombieScannerMK1
 	{
-		mesh = WorldItems/ZombieScannerMK1,
+		mesh = ZombieScannerMK1,
 		texture = ZombieScannerMK1,
 	}
 }
