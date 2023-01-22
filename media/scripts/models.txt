@@ -5,4 +5,10 @@ module Base {
 		mesh = ZombieScannerMK1,
 		texture = ZombieScannerMK1,
 	}
+
+		model ZombieScannerMK2
+	{
+		mesh = ZombieScannerMK2,
+		texture = ZombieScannerMK2,
+	}
 }

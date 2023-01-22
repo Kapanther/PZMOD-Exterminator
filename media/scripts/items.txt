@@ -19,5 +19,21 @@ module Exterminator
         secondaryAnimMask	= HoldingTorchLeft,
         WorldStaticModel	= ZombieScannerMK1_ground,
 	}
+	item ZombieScannerMK2
+	{
+		DisplayName			= Zombie Scanner MKII,
+	    DisplayCategory		= Electronics,
+		Type				= Drainable,
+		Weight				= 1,
+		DisappearOnUse		=	FALSE,
+		ActivatedItem		= TRUE,
+		Icon				= Flashlight,
+		MetalValue			= 10,
+		cantBeConsolided	= TRUE,
+		StaticModel			= ZombieScannerMK2,
+		primaryAnimMask		= HoldingTorchRight,
+        secondaryAnimMask	= HoldingTorchLeft,
+        WorldStaticModel	= ZombieScannerMK2_ground,
+	}
 
 }
