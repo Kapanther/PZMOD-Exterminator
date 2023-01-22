@@ -24,7 +24,7 @@ The plan is to develop the following
 The following settings will need to be modified/checked to ensure the mod can work correctly.
 - No Zombie respawns
 - Maximum Amount of zombies (Population modified will need to be reduced or capped to ensure not to many spawn) 
-  a modifier value of 1 supposedly generateds 52000 zombies map-wide. So im guessing you would not want to go over about 3.
+  a modifier value of 1 supposedly generates 52000 zombies map-wide. So im guessing you would not want to go over about 3.
 - Possibly other map settings will need to be modified
 - Add option to have an "Escape from the city" start. (This could mean performance problems with the server though.) 
 
@@ -38,7 +38,7 @@ Notify players when all zombies have been Exterminated
 The scanner will required the electronics skill to create and the an electronics workbench. Plus key components listed below.
 
 ## Zombie Scanner - MK1
-###Features
+### Features
 Beeps get closer together as you get closer to a zombie
 70m range
 
