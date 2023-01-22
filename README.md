@@ -1,4 +1,14 @@
 # Exterminator - Project Zomboid Mod
+## Todo
+- Add recipes for MK1/MK2 Scanner
+- Add beeping sound based on distance for MK1 scanner
+- Add logic seperation for MK1/MK2 Scanner
+- Add map painting features for zombies detected Yellow 1-20, Orange 20-100, Red 100-300, Dark Red 300+
+- Add prevent respawns on zombies 
+- Add new spawn location - city escape. Remove other spawn location options.
+- Check network behavious for all features, particularly map
+
+
 ## Overview 
 Exterminator is a Project Zomboid mod that will add mechanics to the game to allow players to remove all of the zombies from the map as a victory condition. This includes various zombie scanners and lures as well as Map features to track clearance of zombies.
 
@@ -27,25 +37,25 @@ Notify players when all zombies have been Exterminated
 ## Zombie Scanner
 The scanner will required the electronics skill to create and the an electronics workbench. Plus key components listed below.
 
-##Zombie Scanner - MK1
+## Zombie Scanner - MK1
 ###Features
 Beeps get closer together as you get closer to a zombie
 70m range
 
-###Required Tools / Ingredients / Skills
+### Required Tools / Ingredients / Skills
 - 1x Powercord
 - 1x Radio
 - 1x Computer
 - 1x Metal Tool Box
 - 1x Battery
 
-##Zombie Scanner - MK2
+## Zombie Scanner - MK2
 ###Features
 Beeps get closer together as you get closer to a zombie
 A count is displayed to the user of zombies present
 100m range
 
-###Required Tools / Ingredients / Skills
+### Required Tools / Ingredients / Skills
 - 1x Powercord
 - 1x Radio
 - 1x Ham Radio
