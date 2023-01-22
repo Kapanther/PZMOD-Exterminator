@@ -30,7 +30,7 @@ The scanner will required the electronics skill to create and the an electronics
 ##Zombie Scanner - MK1
 ###Features
 Beeps get closer together as you get closer to a zombie
-120 Tiles range
+70m range
 
 ###Required Tools / Ingredients / Skills
 - 1x Powercord
@@ -43,7 +43,7 @@ Beeps get closer together as you get closer to a zombie
 ###Features
 Beeps get closer together as you get closer to a zombie
 A count is displayed to the user of zombies present
-180 tiles range
+100m range
 
 ###Required Tools / Ingredients / Skills
 - 1x Powercord
