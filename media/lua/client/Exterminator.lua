@@ -83,9 +83,12 @@ end
 
 function Exterminator.drawZombieCount()
 	--print("EXM:drawZombieCount")
-	local player = getPlayer()
+	local player = getPlayer();	
+	local itemOn = getPlayer():getPrimaryHandItem():isEmittingLight();
+	local printDebug = "EXM:drawZombieCount:ItemOn = " .. tostring(itemOn);
+	print(printDebug)
 	--Check if they are holding a zombie scanner
-	if player then
+	if player and itemOn then
 		--print("EXM:drawZombieCount:playerFound")
 		local playerX = floor(player:getX()); --because getX returns float
 		local playerY = floor(player:getY());
@@ -100,22 +103,31 @@ end
 function Exterminator.OnEquipPrimary(character,item)
 	--print("EXM:OnEquipPrimary")
 	if not character:isLocalPlayer() then return end
-		if Exterminator.isZombieScanner(item) then
-			Events.OnPostUIDraw.Add(Exterminator.drawZombieCount)
-		else
-			Events.OnPostUIDraw.Remove(Exterminator.drawZombieCount)
-		end	
+
+	--Draw UI if scanner is equipped
+	if Exterminator.isZombieScanner(item) then
+		Events.OnPostUIDraw.Add(Exterminator.drawZombieCount)
+	else
+		Events.OnPostUIDraw.Remove(Exterminator.drawZombieCount)
+	end	
 end
 
 
 
 function Exterminator.isZombieScanner(item)
 	if item then
-		local itemName = item:getType();		
-		local debugprint = "EXM:isZombieScanner Type =" .. itemName;
-		print(debugprint)	
+		local itemName = item:getType();
+		--local debugprint = "EXM:isZombieScanner Type =" .. itemName;
+		--print(debugprint)	
+		if itemName == "ZombieScannerMK1" or itemName == "ZombieScannerMK2" then
+			return true;
+		else
+			return false;
+		end
+	else
+	return false;
 	end
-	return instanceof(item, "DrainableComboItem")-- and item:getType
+	
 end
 
 Events.OnGameStart.Add(Exterminator.Initialize)

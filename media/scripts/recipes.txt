@@ -1,0 +1,57 @@
+module Exterminator
+{
+	imports {
+		Base
+	}
+    recipe Remove Battery from Zombie Scanner
+   {
+     keep ZombieScannerMK1/ZombieScannerMK2,
+
+     Result:Battery,
+     Time:30,
+     OnTest:Recipe.OnTest.ZombieScannerBatteryRemoval,
+     OnCreate:Recipe.OnCreate.ZombieScannerBatteryRemoval,
+     StopOnWalk:false,
+   }
+
+   recipe Insert Battery into Zombie Scanner
+   {
+     destroy ZombieScannerMK1,
+     destroy Battery,
+
+     Result:ZombieScannerMK1,
+     Time:30,
+     OnTest:Recipe.OnTest.ZombieScannerBatteryInsert,
+     OnCreate:Recipe.OnCreate.ZombieScannerBatteryInsert,
+     StopOnWalk:false,
+   }
+
+   recipe Insert Battery into Zombie Scanner
+   {
+     destroy ZombieScannerMK2,
+     destroy Battery,
+
+     Result:ZombieScannerMK2,
+     Time:30,
+     OnTest:Recipe.OnTest.ZombieScannerBatteryInsert,
+     OnCreate:Recipe.OnCreate.ZombieScannerBatteryInsert,
+     StopOnWalk:false,
+   }
+   
+   recipe Dismantle Zombie Scanner
+   {
+      destroy ZombieScannerMK1/ZombieScannerMK2,
+      keep [Recipe.GetItemTypes.Screwdriver],
+
+      Result:ElectronicsScrap,
+      Time:30.0,
+      OnTest:Recipe.OnTest.DismantleZombieScanner,
+      OnGiveXP:Recipe.OnGiveXP.DismantleElectronics,
+      OnCreate:Recipe.OnCreate.DismantleZombieScanner,
+      Category:Electrical,
+      AnimNode:Disassemble,
+      Prop1:Screwdriver,
+      Prop2:Source=1,
+   }
+
+}

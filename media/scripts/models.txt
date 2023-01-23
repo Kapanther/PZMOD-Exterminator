@@ -1,5 +1,7 @@
-module Base {
-
+module Exterminator {
+	imports {
+		Base
+	}
 	model ZombieScannerMK1
 	{
 		mesh = ZombieScannerMK1,
