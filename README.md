@@ -50,7 +50,7 @@ Beeps get closer together as you get closer to a zombie
 - 1x Battery
 
 ## Zombie Scanner - MK2
-###Features
+### Features
 Beeps get closer together as you get closer to a zombie
 A count is displayed to the user of zombies present
 100m range
