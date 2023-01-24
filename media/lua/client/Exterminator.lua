@@ -72,8 +72,23 @@ function Exterminator.getZombieScanData(playerX,playerY)
 				end
 			end
         end
-		cache_nearestZombieDistance = minDistanceToZombie;
+	else
+		--zombie count is zero add marker to map
 	end
+	cache_nearestZombieDistance = minDistanceToZombie;
+end
+
+function Exterminator.addClearedMarker (player,playerX,playerY)
+	-- get current markers on map
+	local worldMarkers = getWorldMarkers();
+	--local clearedPoints = worldMarkers:getHomingPoint
+	--if no makrers continue
+	--if worldMarkers 
+		--if markers check we are furthern than 100m from a marker..
+		--if we are add a marker
+
+
+
 end
 
 function Exterminator.getDistanceToZombie(playerX,playerY,zombieX,zombieY)
