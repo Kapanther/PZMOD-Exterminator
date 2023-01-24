@@ -5,7 +5,7 @@ module Exterminator
 	}
 	item ZombieScannerMK1
 	{
-        DisplayCategory		=	LightSource,
+        DisplayCategory		=	Electronics,
         LightDistance		=	20,
         Weight				=	0.5,
         DisappearOnUse		=	FALSE,
@@ -25,7 +25,7 @@ module Exterminator
 	}
 	item ZombieScannerMK2
 	{
-        DisplayCategory		=	LightSource,
+        DisplayCategory		=	Electronics,
         LightDistance		=	25,
         Weight				=	0.6,
         DisappearOnUse		=	FALSE,
@@ -42,5 +42,19 @@ module Exterminator
         primaryAnimMask		=	HoldingTorchRight,
         secondaryAnimMask	=	HoldingTorchLeft,
         WorldStaticModel	=	ZombieScannerMK2_ground,
+	}
+
+    	item Battery
+	{
+	    DisplayCategory = Electronics,
+		Weight	=	0.1,
+		Type	=	Drainable,
+		UseDelta	=	0.00001,
+		UseWhileEquipped	=	FALSE,
+		DisplayName	=	Battery,
+		Icon	=	Battery,
+		MetalValue = 1,
+		cantBeConsolided = TRUE,
+		WorldStaticModel = Battery,
 	}
 }

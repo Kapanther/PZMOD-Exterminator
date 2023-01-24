@@ -108,8 +108,8 @@ function Exterminator.OnEquipPrimary(character,item)
 	if Exterminator.isZombieScanner(item) then
 		Events.OnPostUIDraw.Add(Exterminator.drawZombieCount)
 	else
-		Events.OnPostUIDraw.Remove(Exterminator.drawZombieCount)
-	end	
+		Events.OnPostUIDraw.Remove(Exterminator.drawZombieCount)	
+	end
 end
 
 

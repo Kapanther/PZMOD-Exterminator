@@ -3,7 +3,9 @@
 --**                    EXTERMINATOR                       **
 --***********************************************************
 -- Custom Functions for battery removal and insertion dismantiing etc..
-
+--Recipe = Recipe or {}
+-- Recipe.OnTest = Recipe.OnTest or {}
+-- Recipe.OnCreate = Recipe.OnCreate or {}
 
 -- Return true if recipe is valid, false otherwise
 function Recipe.OnTest.ZombieScannerBatteryRemoval (sourceItem, result)
@@ -58,6 +60,7 @@ end
 
 -- You can't dismantle favorite item
 function Recipe.OnTest.DismantleZombieScanner(sourceItem, result)
-	if sourceItem:hasTag("Screwdriver") then return true end
+	local typeName = sourceItem:getType();
+	if typeName == "ZombieScannerMK1" or typeName == "ZombieScannerMK2" then return true end
     return not sourceItem:isFavorite()
 end

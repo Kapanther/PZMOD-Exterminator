@@ -3,12 +3,13 @@ module Exterminator
 	imports {
 		Base
 	}
-    recipe Remove Battery from Zombie Scanner
+    recipe Remove Battery
    {
      keep ZombieScannerMK1/ZombieScannerMK2,
 
      Result:Battery,
      Time:30,
+     Category:Electronics,
      OnTest:Recipe.OnTest.ZombieScannerBatteryRemoval,
      OnCreate:Recipe.OnCreate.ZombieScannerBatteryRemoval,
      StopOnWalk:false,
@@ -21,6 +22,7 @@ module Exterminator
 
      Result:ZombieScannerMK1,
      Time:30,
+     Category:Electronics,
      OnTest:Recipe.OnTest.ZombieScannerBatteryInsert,
      OnCreate:Recipe.OnCreate.ZombieScannerBatteryInsert,
      StopOnWalk:false,
@@ -33,12 +35,13 @@ module Exterminator
 
      Result:ZombieScannerMK2,
      Time:30,
+     Category:Electronics,
      OnTest:Recipe.OnTest.ZombieScannerBatteryInsert,
      OnCreate:Recipe.OnCreate.ZombieScannerBatteryInsert,
      StopOnWalk:false,
    }
-   
-   recipe Dismantle Zombie Scanner
+
+    recipe Dismantle Zombie Scanner
    {
       destroy ZombieScannerMK1/ZombieScannerMK2,
       keep [Recipe.GetItemTypes.Screwdriver],
@@ -48,10 +51,9 @@ module Exterminator
       OnTest:Recipe.OnTest.DismantleZombieScanner,
       OnGiveXP:Recipe.OnGiveXP.DismantleElectronics,
       OnCreate:Recipe.OnCreate.DismantleZombieScanner,
-      Category:Electrical,
+      Category:Electronics,
       AnimNode:Disassemble,
       Prop1:Screwdriver,
       Prop2:Source=1,
    }
-
 }
