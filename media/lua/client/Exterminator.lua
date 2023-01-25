@@ -78,19 +78,6 @@ function Exterminator.getZombieScanData(playerX,playerY)
 	cache_nearestZombieDistance = minDistanceToZombie;
 end
 
-function Exterminator.addClearedMarker (player,playerX,playerY)
-	-- get current markers on map
-	local worldMarkers = getWorldMarkers();
-	--local clearedPoints = worldMarkers:getHomingPoint
-	--if no makrers continue
-	--if worldMarkers 
-		--if markers check we are furthern than 100m from a marker..
-		--if we are add a marker
-
-
-
-end
-
 function Exterminator.getDistanceToZombie(playerX,playerY,zombieX,zombieY)
 	distanceToZombie = math.sqrt((math.pow(zombieX-playerX,2)+math.pow(zombieY-playerY,2)));
 	return distanceToZombie
@@ -142,7 +129,47 @@ function Exterminator.isZombieScanner(item)
 	else
 	return false;
 	end
-	
+end
+
+function Exterminator.getSymAPI(map_item)
+  local map_api
+
+  if map_item then
+    map_api = UIWorldMap.new(nil):getAPIv1()
+    map_api:setMapItem(map_item)
+  -- NOTE: we have to use the global instance to avoid inconsistencies on hitCheck
+  elseif ISWorldMap_instance then
+    map_api = ISWorldMap_instance.javaObject:getAPIv1()
+  else -- NOTE: we don't have a global instance yet, but we need to use the MapItem singleton
+    map_api = UIWorldMap.new(nil):getAPIv1()
+    map_api:setMapItem(MapItem:getSingleton())
+  end
+
+  return map_api:getSymbolsAPI()
+end
+
+function Exterminator.existingTable(symAPI)
+  local existing = {}
+  local cnt = symAPI:getSymbolCount()
+  for i = 0, cnt - 1 do
+    local sym = symAPI:getSymbolByIndex(i)
+    local key = Lib.makeKey(sym:getWorldX(), sym:getWorldY())
+    existing[key] = {i, sym}
+  end
+  return existing
+end
+
+function Exterminator.addClearedMarker (player,playerX,playerY)
+	-- get current markers on map
+	local worldMarkers = getWorldMarkers();
+	--local clearedPoints = worldMarkers:getHomingPoint
+	--if no makrers continue
+	--if worldMarkers 
+		--if markers check we are furthern than 100m from a marker..
+		--if we are add a marker
+
+
+
 end
 
 Events.OnGameStart.Add(Exterminator.Initialize)
