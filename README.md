@@ -4,7 +4,9 @@
 - Add Total Cleared Percentage approxmately 3200 dots to win!
 - Add prevent respawns on zombies 
 - Add new spawn location - city escape. Remove other spawn location options.
-- Check network behavious for all features, particularly map
+- Check network behavious for all features, particularly map dots been shared
+- fix scanner models to look better
+- possibly adjsut battery time on scanner
 
 
 ## Overview 
