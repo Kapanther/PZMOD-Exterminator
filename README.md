@@ -1,9 +1,7 @@
 # Exterminator - Project Zomboid Mod
 ## Todo
-- Add recipes for MK1/MK2 Scanner
-- Add beeping sound based on distance for MK1 scanner
-- Add logic seperation for MK1/MK2 Scanner
-- Add map painting features for zombies detected Yellow 1-20, Orange 20-100, Red 100-300, Dark Red 300+
+- Check recipes for MK1/MK2 Scanner and SEcondary Hand Logic
+- Add Total Cleared Percentage approxmately 3200 dots to win!
 - Add prevent respawns on zombies 
 - Add new spawn location - city escape. Remove other spawn location options.
 - Check network behavious for all features, particularly map
