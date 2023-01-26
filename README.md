@@ -7,6 +7,7 @@
 - Check network behavious for all features, particularly map dots been shared
 - fix scanner models to look better
 - possibly adjsut battery time on scanner
+- prep for steam workshop
 
 
 ## Overview 

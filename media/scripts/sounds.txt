@@ -5,7 +5,7 @@ module Exterminator {
         category						=	Tools, 
 		loop							=	FALSE, 
 		is3D							=	TRUE,
-        clip { file = media/sounds/ZombieScannerBeep.ogg, distanceMax = 10, volume = 0.5, }
+        clip { file = media/sounds/ZombieScannerBeep.ogg, distanceMax = 10, volume = 0.4, }
     }
 
     	sound ClearedAreaBeep
