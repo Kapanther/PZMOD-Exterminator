@@ -17,6 +17,16 @@ MapSymbolDefinitions.getInstance():addTexture("EXMclearedDot", "media/ui/Lootabl
 --- Declares the instance prefix
 Exterminator = Exterminator or {}
 
+local floor = math.floor
+local cache_zombieCount = 0;
+local cache_nearestZombieDistance = 9999;
+local clearedMarkersToWin = 3200;
+local clearedMarkers = 1;
+local timeSinceLastBeep = -1;
+local zombieDistanceLimitMk1 = 75 -- for mk1 scanner
+local zombieDistanceLimitMk2 = 150 -- for mk2 scanner
+local clearedTexture = "EXMclearedDot";
+
 --starts the Zombie scanner mod
 function Exterminator.Initialize()
 	print("EXM:Initialize")
@@ -30,9 +40,7 @@ function Exterminator.Initialize()
 	end
 end
 
-local floor = math.floor
-local cache_zombieCount = 0;
-local cache_nearestZombieDistance = 9999;
+
 function Exterminator.getZombieScanData(playerX,playerY)
 	--print("EXM:getCellData")
 	--Cell Data
@@ -103,7 +111,10 @@ function Exterminator.runZombieScanner()
 	-- will update every UI tick
 	-- DEBUG ONLY -- display zombie count and distance by un commenting these next 6 lines
 	local text_zombieCount =  "Zombie Count = " .. cache_zombieCount;
+	local clearedPercentage = floor(clearedMarkers/clearedMarkersToWin);
+	local text_clearedPerctange = "Cleared Area = " .. tostring(clearedPercentage) .. "% (" .. clearedMarkers .. "/" .. clearedMarkersToWin .. ")";	
 	textManager:DrawString(UIFont.Large, screenX, screenY, text_zombieCount, 0.1, 0.8, 1, 1);
+	textManager:DrawString(UIFont.Large, screenX, screenY + 30, text_clearedPerctange, 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 60, tostring(timeSinceLastBeep), 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 90, tostring(timeSinceLastUpdate), 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 120, tostring(isItemOn), 0.1, 0.8, 1, 1);
@@ -125,9 +136,7 @@ function Exterminator.runZombieScanner()
 	end
 end
 
-local timeSinceLastBeep = -1;
-local zombieDistanceLimitMk1 = 75 -- for mk1 scanner
-local zombieDistanceLimitMk2 = 150 -- for mk2 scanner
+
 function Exterminator.ScannerFunctionMk1(zombieCount,zombieDistance)
 
 	--beep the scanner or reset the timed to next beep
@@ -230,16 +239,33 @@ function Exterminator.CheckExistingCleared(symAPI,playerX,playerY)
 	local sym = symAPI:getSymbolByIndex(i)
 	local sym_x = sym:getWorldX();
 	local sym_y = sym:getWorldY();
-	--local sym_texture = "Exterminator.CheckExistingCleared texture=" .. tostring(sym:getSymbolID());
-	--print (sym_texture)
-	local distToSymbol = Exterminator.getDistanceToSymbol(playerX,playerY,sym_x,sym_y)
-	if distToSymbol < distanceClearance then
-		isNew = false;
-		return isNew
+	local sym_texture = sym:getSymbolID();
+	if sym_texture == clearedTexture then
+		local distToSymbol = Exterminator.getDistanceToSymbol(playerX,playerY,sym_x,sym_y)
+		if distToSymbol < distanceClearance then
+			isNew = false;
+			return isNew;
+		end
 	end
   end
 return isNew
 end
+
+function Exterminator.countCleared(symAPI)
+	local countCleared = 0
+	local cnt = symAPI:getSymbolCount()
+	for i = 0, cnt - 1 do
+		local sym = symAPI:getSymbolByIndex(i)
+		local sym_texture = sym:getSymbolID();
+		--local printDebug = "Exterminator.countCleared " .. sym_texture .. " " .. clearedTexture;
+		--print(printDebug);
+		if sym_texture == clearedTexture then
+			countCleared = countCleared + 1
+		end
+	end
+clearedMarkers = countCleared;
+end
+
 
 function Exterminator.addClearedMarker (player,playerX,playerY)
 
@@ -249,11 +275,12 @@ function Exterminator.addClearedMarker (player,playerX,playerY)
 	local isNew = Exterminator.CheckExistingCleared(symAPI,playerX,playerY)
 	--local printDebug = "Exterminator.addClearedMarker SC=" .. symbolCount .. " isNew = " .. tostring(isNew);
 	if isNew then
-		local newSymbol = symAPI:addTexture("EXMclearedDot",playerX,playerY)
+		local newSymbol = symAPI:addTexture(clearedTexture,playerX,playerY)
 		newSymbol:setAnchor(0.5, 0.5)
 		newSymbol:setScale(5)
 		newSymbol:setRGBA(51, 255, 48, 200)
 		Exterminator.ClearedAreaBeep() --play sound for area cleared
+		Exterminator.countCleared(symAPI) -- recount the cleared markers
 	end
 	--print(printDebug)
 end
@@ -270,6 +297,33 @@ end
 function Exterminator.getDistanceToSymbol(playerX,playerY,symbolX,symbolY)
 	distanceToZombie = math.sqrt((math.pow(symbolX-playerX,2)+math.pow(symbolY-playerY,2)));
 	return distanceToZombie
+end
+
+local function onServerCommand(module, command, args)
+	if module ~= PlayersOnMap.MOD_ID then
+		return
+	end
+
+	-- TODO FIX ALL OF THIS
+	print( ('PlayersOnMap - Received command from server: "%s"'):format(command) )
+
+	if command == 'InitLoad' then
+		client_config = PlayersOnMap.io.load(PlayersOnMap.ClientConfigFileName)
+		server_config = args.config
+
+		PlayersOnMap.ClientConfig = client_config
+		PlayersOnMap.ServerConfig = server_config--You update "ServerConfig" here so it shows the correct options in admin settings;
+
+		Events.OnPlayerUpdate.Remove(onPlayerUpdate)
+		updates, onPlayerUpdate = nil, nil
+	end
+
+	if command == 'SetServerConfig' then
+		print( ('PlayersOnMap - Updating "%s" to "%s"'):format(args.option, tostring(args.config[args.option])) )
+
+		server_config = args.config
+		PlayersOnMap.ServerConfig = server_config
+	end
 end
 
 --required to initialise the mod
