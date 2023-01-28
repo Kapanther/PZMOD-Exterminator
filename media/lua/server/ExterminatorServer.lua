@@ -1,11 +1,11 @@
 local server_config = {};
 
-local function Exterminator.onServerStart() --TODO server config
+local function onServerStart() --TODO server config
     
 end
 
-local function Exterminator.onClientCommand(module, command, player, args)
-    if module ~= Exterminator.MOD_ID then
+local function onClientCommand(module, command, player, args)
+    if module ~= "Exterminator" then --TODO this is hard  coded right now consider linking the mod ID to to it
         return
     end
 
@@ -17,6 +17,6 @@ local function Exterminator.onClientCommand(module, command, player, args)
 end
 
 if isServer() then
-    Events.OnServerStarted.Add(Exterminator.onServerStart)
-    Events.OnClientCommand.Add(Exterminator.onClientCommand) --// a client sends to server
+    Events.OnServerStarted.Add(onServerStart)
+    Events.OnClientCommand.Add(onClientCommand) --// a client sends to server
 end

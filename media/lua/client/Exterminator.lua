@@ -353,7 +353,7 @@ function Exterminator.onServerCommand(module, command, args)
 	--add a cleared marker to the players map from another player.
 	if command == 'AddClearedMarker' then
 	print('Exterminator.onServerCommand.recieveClearedMarker')
-	Exterminator.recieveClearedMarker(args[1].args[2])
+	Exterminator.recieveClearedMarker(args[1],args[2])
 	end
 end
 
