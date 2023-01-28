@@ -13,4 +13,4 @@ module Exterminator {
 		mesh = ZombieScannerMK2,
 		texture = ZombieScannerMK2,
 	}
-}
+}sa

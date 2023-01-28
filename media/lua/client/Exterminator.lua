@@ -10,12 +10,28 @@
 --- You are free to do whatever you want with the mod provided you do not upload any part of it anywhere.
 ---
 
+Exterminator = Exterminator or {}
+Exterminator.MOD_ID = "Exterminator"
+
+Exterminator.ServerConfigFileName = 'ExterminatorServerConfig.lua'
+Exterminator.DefaultServerConfig = {
+	["ClearWorldMaxX"] = 15000,
+	["ClearWorldMinX"] = 200,
+	["ClearWorldMaxY"] = 13500,
+	["ClearWorldMinY"] = 1200,
+}
+
+Exterminator.ClientConfigFileName = 'ExterminatorClientConfig.lua'
+Exterminator.DefaultClientConfig = {
+	["ClearWorldMaxX"] = 15000,
+	["ClearWorldMinX"] = 200,
+	["ClearWorldMaxY"] = 13500,
+	["ClearWorldMinY"] = 1200,
+}
+
 require 'ISUI/Maps/ISWorldMap'
 require 'ISUI/Maps/ISMiniMap'
 MapSymbolDefinitions.getInstance():addTexture("EXMclearedDot", "media/ui/LootableMaps/EXMclearedDot.png")
-
---- Declares the instance prefix
-Exterminator = Exterminator or {}
 
 local floor = math.floor
 local cache_zombieCount = 0;
@@ -30,6 +46,12 @@ local clearedTexture = "EXMclearedDot";
 --starts the Zombie scanner mod
 function Exterminator.Initialize()
 	print("EXM:Initialize")
+	-- check if we are the client and register for server commands
+	if isClient() then
+	Events.OnServerCommand.Add(Exterminator.onServerCommand)-- Client receiving message from server	
+	--TODO do initial sync of cleared zones and markers before starting
+	end
+
 	--add zombie scanner check to equip Primary or secondary
 	Events.OnEquipPrimary.Add(Exterminator.OnEquipPrimary)
 	--Events.OnEquipSecondary.Add(OnEquipPrimary)	
@@ -281,6 +303,26 @@ function Exterminator.addClearedMarker (player,playerX,playerY)
 		newSymbol:setRGBA(51, 255, 48, 200)
 		Exterminator.ClearedAreaBeep() --play sound for area cleared
 		Exterminator.countCleared(symAPI) -- recount the cleared markers
+		sendClientCommand(player,Exterminator.MOD_ID,'AddClearedMarker',{playerX,playerY})
+		print('Exterminator.addClearedMarker:SendClientCommand')
+	end
+	--print(printDebug)
+end
+
+function Exterminator.recieveClearedMarker (playerX,playerY)
+
+	-- get current markers on map and count
+	local symAPI = Exterminator.getSymAPI(item)
+	local symbolCount = symAPI:getSymbolCount()	
+	local isNew = Exterminator.CheckExistingCleared(symAPI,playerX,playerY)
+	--local printDebug = "Exterminator.addClearedMarker SC=" .. symbolCount .. " isNew = " .. tostring(isNew);
+	if isNew then
+		local newSymbol = symAPI:addTexture(clearedTexture,playerX,playerY)
+		newSymbol:setAnchor(0.5, 0.5)
+		newSymbol:setScale(5)
+		newSymbol:setRGBA(51, 255, 48, 200)
+		Exterminator.ClearedAreaBeep() --play sound for area cleared
+		Exterminator.countCleared(symAPI) -- recount the cleared markers		
 	end
 	--print(printDebug)
 end
@@ -299,30 +341,19 @@ function Exterminator.getDistanceToSymbol(playerX,playerY,symbolX,symbolY)
 	return distanceToZombie
 end
 
-local function onServerCommand(module, command, args)
-	if module ~= PlayersOnMap.MOD_ID then
+function Exterminator.onServerCommand(module, command, args)
+	--Check if this command if for our mod otherwise exit
+	if module ~= Exterminator.MOD_ID then
 		return
 	end
 
-	-- TODO FIX ALL OF THIS
-	print( ('PlayersOnMap - Received command from server: "%s"'):format(command) )
+	-- debug
+	print( ('Exterminator.onServerCommand Command= "%s"'):format(command) )
 
-	if command == 'InitLoad' then
-		client_config = PlayersOnMap.io.load(PlayersOnMap.ClientConfigFileName)
-		server_config = args.config
-
-		PlayersOnMap.ClientConfig = client_config
-		PlayersOnMap.ServerConfig = server_config--You update "ServerConfig" here so it shows the correct options in admin settings;
-
-		Events.OnPlayerUpdate.Remove(onPlayerUpdate)
-		updates, onPlayerUpdate = nil, nil
-	end
-
-	if command == 'SetServerConfig' then
-		print( ('PlayersOnMap - Updating "%s" to "%s"'):format(args.option, tostring(args.config[args.option])) )
-
-		server_config = args.config
-		PlayersOnMap.ServerConfig = server_config
+	--add a cleared marker to the players map from another player.
+	if command == 'AddClearedMarker' then
+	print('Exterminator.onServerCommand.recieveClearedMarker')
+	Exterminator.recieveClearedMarker(args[1].args[2])
 	end
 end
 

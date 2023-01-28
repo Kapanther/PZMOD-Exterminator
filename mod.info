@@ -1,4 +1,5 @@
-name=EXTERMINATOR
-id=EXM
-description=Find all the zombies and exterminate them to win. Adds a zombie scanner item to detect remaining zombies in a cell. Turn off respawns for this mod to work properly
+name=Exterminator
+id=EXZ
+description=Find all the zombies and exterminate them to win. Adds a zombie scanner item to detect remaining zombies in a cell. Turn off zombie respawns for this mod to work properly
 poster=poster.png
+versionMin=41.65
