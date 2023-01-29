@@ -1,4 +1,10 @@
+--local mysql = require "luasql.mysql"
+
 local server_config = {};
+--local env  = mysql:mysql()
+--local conn = env:connect("C:\Users\bkant\Zomboid\mods\Exterminator\media\db\DefaultGridDatabase.db",'main','Grid')
+--print(env,conn)
+
 
 local function onServerStart() --TODO server config
     

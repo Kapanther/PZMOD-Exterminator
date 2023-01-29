@@ -42,6 +42,11 @@ local timeSinceLastBeep = -1;
 local zombieDistanceLimitMk1 = 75 -- for mk1 scanner
 local zombieDistanceLimitMk2 = 150 -- for mk2 scanner
 local clearedTexture = "EXMclearedDot";
+local currentCellMinX = 0
+local currentCellMaxX = 0
+local currentCellMinY = 0
+local currentCellMaxY = 0
+local currentZone = nil;
 
 --starts the Zombie scanner mod
 function Exterminator.Initialize()
@@ -123,6 +128,7 @@ function Exterminator.runZombieScanner()
 			-- get zombie scan data from surroundins
 			Exterminator.getZombieScanData(playerX,playerY)
 			isItemOn = true;
+			Exterminator.updateCellLimits(playerX,playerY)
 		else
 		isItemOn = false;
 		end
@@ -135,11 +141,13 @@ function Exterminator.runZombieScanner()
 	local text_zombieCount =  "Zombie Count = " .. cache_zombieCount;
 	local clearedPercentage = floor(clearedMarkers/clearedMarkersToWin);
 	local text_clearedPerctange = "Cleared Area = " .. tostring(clearedPercentage) .. "% (" .. clearedMarkers .. "/" .. clearedMarkersToWin .. ")";	
+	local text_cellbounds = "Cell Bounds = X " .. currentCellMinX .. "," .. currentCellMaxX .. " Y " .. currentCellMinY .. "," .. currentCellMaxY;
 	textManager:DrawString(UIFont.Large, screenX, screenY, text_zombieCount, 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 30, text_clearedPerctange, 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 60, tostring(timeSinceLastBeep), 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 90, tostring(timeSinceLastUpdate), 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 120, tostring(isItemOn), 0.1, 0.8, 1, 1);
+	textManager:DrawString(UIFont.Large, screenX, screenY + 150, text_cellbounds, 0.1, 0.8, 1, 1);	
 
 	if player and isItemOn then
 			--if zombie count is less than zero else run the scanner logic
@@ -214,7 +222,7 @@ function Exterminator.OnEquipPrimary(character,item)
 		Events.OnPostUIDraw.Add(Exterminator.runZombieScanner)
 	else
 		Events.OnPostUIDraw.Remove(Exterminator.runZombieScanner)	
-	end
+	end	
 end
 
 
@@ -234,7 +242,7 @@ function Exterminator.isZombieScanner(item)
 	end
 end
 
-function Exterminator.getSymAPI(map_item)
+function Exterminator.getmapAPI(map_item)
   local map_api
 
   if map_item then
@@ -248,7 +256,33 @@ function Exterminator.getSymAPI(map_item)
     map_api:setMapItem(MapItem:getSingleton())
   end
 
+  return map_api
+end
+
+function Exterminator.getSymAPI(map_item)
+  map_api = Exterminator.getmapAPI(map_item)
+
   return map_api:getSymbolsAPI()
+end
+
+function Exterminator.updateCellLimits(playerX,playerY)
+	local theWorld = getWorld()
+	local printDebug1 = "EXM:updateCellLimits: MAPAPI " .. tostring(theWorld);
+	print(printDebug1)
+
+	if theWorld then	
+		if currentZone then
+		--register a new zone (this will work we can dispose and open new zones as they become visibile..
+		currentCellMinX = currentZone:getX();
+		currentCellMaxX = theWorld:getLuaPosX();
+		currentCellMinY = currentZone:getY();
+		currentCellMaxY = theWorld:getLuaPosY();		
+		else
+		currentZone = theWorld:registerZone("CurrentZone","Clearing", playerX,playerY,0,200,200)
+		end
+	local printDebug = "EXM:updateCellLimits: X " .. tostring(currentZone:getZombieDensity());
+	print(printDebug)
+	end
 end
 
 function Exterminator.CheckExistingCleared(symAPI,playerX,playerY)
@@ -299,10 +333,10 @@ function Exterminator.addClearedMarker (player,playerX,playerY)
 	if isNew then
 		local newSymbol = symAPI:addTexture(clearedTexture,playerX,playerY)
 		newSymbol:setAnchor(0.5, 0.5)
-		newSymbol:setScale(5)
+		newSymbol:setScale(0.5) --DEBUG set scale to 0.01 so it cant be deleted by player
 		newSymbol:setRGBA(51, 255, 48, 200)
 		Exterminator.ClearedAreaBeep() --play sound for area cleared
-		Exterminator.countCleared(symAPI) -- recount the cleared markers
+		Exterminator.countCleared(symAPI) -- recount the cleared markers		
 		sendClientCommand(player,Exterminator.MOD_ID,'AddClearedMarker',{playerX,playerY})
 		print('Exterminator.addClearedMarker:SendClientCommand')
 	end
@@ -339,6 +373,10 @@ end
 function Exterminator.getDistanceToSymbol(playerX,playerY,symbolX,symbolY)
 	distanceToZombie = math.sqrt((math.pow(symbolX-playerX,2)+math.pow(symbolY-playerY,2)));
 	return distanceToZombie
+end
+
+function Exterminator.getVisibleCleareanceGrids(playerX,playerY)
+	--TODO
 end
 
 function Exterminator.onServerCommand(module, command, args)
