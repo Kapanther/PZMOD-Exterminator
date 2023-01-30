@@ -36,6 +36,7 @@ MapSymbolDefinitions.getInstance():addTexture("EXMclearedDot", "media/ui/Lootabl
 local floor = math.floor
 local cache_zombieCount = 0;
 local cache_nearestZombieDistance = 9999;
+local cache_groundtype --Debug for checking ground 
 local clearedMarkersToWin = 3200;
 local clearedMarkers = 1;
 local timeSinceLastBeep = -1;
@@ -47,6 +48,20 @@ local currentCellMaxX = 0
 local currentCellMinY = 0
 local currentCellMaxY = 0
 local currentZone = nil;
+local doZombieDebugScan = true -- set to true to run giant map scan
+local lastDebugScan = -1
+local lastDebugScanInterval = 2
+local debugScanMinX = 0
+local debugScanMaxX = 19800
+local debugScanMinY = 0
+local debugScanMaxY = 15900
+local debugScanStartX = 50
+local debugScanStartY = 7050
+local debugScanCurrentX = debugScanStartX
+local debugScanCurrentY = debugScanStartY
+local debugScanMoveIntervalX = 100
+local debugScanMoveIntervalY = 100
+local debugFileOutputPath = 'TileData.txt'
 
 --starts the Zombie scanner mod
 function Exterminator.Initialize()
@@ -100,6 +115,84 @@ function Exterminator.getZombieScanData(playerX,playerY)
 	end
 end
 
+
+function Exterminator.ZombieDebugScan()
+	if lastDebugScan < 0 then
+	-- get the player
+	local player = getPlayer();
+		if player then
+			--teleport the player to currentX Y
+			player:setX(debugScanCurrentX); --floor required because getX returns a float
+			player:setY(debugScanCurrentY);
+			player:setY(0);
+			player:setLx(debugScanCurrentX); --floor required because getX returns a float
+			player:setLy(debugScanCurrentY);
+			player:setLz(0);
+	
+			--run the scan
+			Exterminator.getZombieScanData(debugScanCurrentX,debugScanCurrentY)
+			--get total zombies
+			local stat_totalZombies = cache_zombieCount
+			--get valid tile check (water is accesible etc)
+			local world = getWorld()
+			local zoneName = debugScanCurrentX .. debugScanCurrentY
+			local zone = getWorld():registerZone(zoneName,"EXM",debugScanCurrentX,debugScanCurrentY,0,debugScanMoveIntervalX,debugScanMoveIntervalY)
+			local squares = zone:getSquares();
+			
+			--loop through squares and check they contain land
+			local countGround = 0
+			local countGroundBreak = 30
+			if squares then
+				for i = 0, squares:size() - 1,1 do
+					local groundtype = squares:get(i):getFloor():hasWater(); --TODO DEBUG Only remove later
+					print(groundtype)
+					if groundtype == false then
+					countGround = countGround +1;
+					end
+					if countGround > countGroundBreak then
+					break
+					end
+				end
+			end
+
+			local stat_groundType
+			if countGround < countGroundBreak then
+				stat_groundType = "Water"
+				else
+				stat_groundType = "Ground"
+			end
+
+			--get zombie density
+			local stat_zombieDensity = zone:getZombieDensity()
+
+			--dispose zone
+			zone:Dispose();
+
+			--write to log and file 
+			local debugLog = getFileWriter(debugFileOutputPath,true,true)
+
+			local stat_logtext = zoneName .."," .. debugScanCurrentX .."," .. debugScanCurrentY .."," .. stat_groundType .."," .. stat_totalZombies .."," .. stat_zombieDensity .. "\n";
+			debugLog:write(stat_logtext)
+			debugLog:close()
+			print(stat_logtext)
+			
+			--next tile logic
+			debugScanCurrentX = debugScanCurrentX + debugScanMoveIntervalX
+			if debugScanCurrentX > debugScanMaxX then
+				debugScanCurrentX = debugScanStartX
+				debugScanCurrentY = debugScanCurrentY + debugScanMoveIntervalY
+				if debugScanCurrentY > debugScanMaxY then
+					--end the scan
+					Events.OnPostUIDraw.Remove(Exterminator.ZombieDebugScan)
+				end
+			end
+			lastDebugScan = lastDebugScanInterval
+		end
+	else
+	lastDebugScan = lastDebugScan - 1
+	end
+end
+
 function Exterminator.getDistanceToZombie(playerX,playerY,zombieX,zombieY)
 	distanceToZombie = math.sqrt((math.pow(zombieX-playerX,2)+math.pow(zombieY-playerY,2)));
 	return distanceToZombie
@@ -116,25 +209,27 @@ local lastHeldItem = ""
 function Exterminator.runZombieScanner()
 	local player = getPlayer();
 	--get the player position
-	local playerX = floor(player:getX()); --floor required because getX returns a float
-	local playerY = floor(player:getY());
-	if timeSinceLastUpdate < 0 then		
-		--get the player check the zombie scanner is on.. it emits light as means of turning on			
-		local itemOn = player:getPrimaryHandItem():isEmittingLight();
-		local itemName = player:getPrimaryHandItem():getType();
-		lastHeldItem = itemName;
-		--Check if they are holding a zombie scanner and its turned on
-		if player and itemOn then
-			-- get zombie scan data from surroundins
-			Exterminator.getZombieScanData(playerX,playerY)
-			isItemOn = true;
-			Exterminator.updateCellLimits(playerX,playerY)
+	if player then
+		local playerX = floor(player:getX()); --floor required because getX returns a float
+		local playerY = floor(player:getY());		
+		if timeSinceLastUpdate < 0 then		
+			--get the player check the zombie scanner is on.. it emits light as means of turning on			
+			local itemOn = player:getPrimaryHandItem():isEmittingLight();
+			local itemName = player:getPrimaryHandItem():getType();
+			lastHeldItem = itemName;
+			--Check if they are holding a zombie scanner and its turned on
+			if itemOn then
+				-- get zombie scan data from surroundins
+				Exterminator.getZombieScanData(playerX,playerY)
+				isItemOn = true;
+				--Exterminator.updateCellLimits(playerX,playerY) --TODO was been used for debugging
+			else
+			isItemOn = false;
+			end
+			timeSinceLastUpdate = updateInterval;
 		else
-		isItemOn = false;
+			timeSinceLastUpdate = timeSinceLastUpdate - 1;
 		end
-		timeSinceLastUpdate = updateInterval;
-	else
-		timeSinceLastUpdate = timeSinceLastUpdate - 1;
 	end
 	-- will update every UI tick
 	-- DEBUG ONLY -- display zombie count and distance by un commenting these next 6 lines
@@ -147,9 +242,11 @@ function Exterminator.runZombieScanner()
 	textManager:DrawString(UIFont.Large, screenX, screenY + 60, tostring(timeSinceLastBeep), 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 90, tostring(timeSinceLastUpdate), 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 120, tostring(isItemOn), 0.1, 0.8, 1, 1);
-	textManager:DrawString(UIFont.Large, screenX, screenY + 150, text_cellbounds, 0.1, 0.8, 1, 1);	
+	textManager:DrawString(UIFont.Large, screenX, screenY + 150, text_cellbounds, 0.1, 0.8, 1, 1);
 
 	if player and isItemOn then
+		local playerX = floor(player:getX()); --floor required because getX returns a float
+		local playerY = floor(player:getY());
 			--if zombie count is less than zero else run the scanner logic
 		if cache_zombieCount > 0 then
 			--check which scanner is been help and run the zombie scanner
@@ -223,9 +320,12 @@ function Exterminator.OnEquipPrimary(character,item)
 	else
 		Events.OnPostUIDraw.Remove(Exterminator.runZombieScanner)	
 	end	
+
+	if doZombieDebugScan then
+		Events.OnPostUIDraw.Add(Exterminator.ZombieDebugScan)
+		doZombieDebugScan = false
+	end
 end
-
-
 
 function Exterminator.isZombieScanner(item)
 	if item then
@@ -332,13 +432,19 @@ function Exterminator.addClearedMarker (player,playerX,playerY)
 	--local printDebug = "Exterminator.addClearedMarker SC=" .. symbolCount .. " isNew = " .. tostring(isNew);
 	if isNew then
 		local newSymbol = symAPI:addTexture(clearedTexture,playerX,playerY)
-		newSymbol:setAnchor(0.5, 0.5)
-		newSymbol:setScale(0.5) --DEBUG set scale to 0.01 so it cant be deleted by player
-		newSymbol:setRGBA(51, 255, 48, 200)
-		Exterminator.ClearedAreaBeep() --play sound for area cleared
-		Exterminator.countCleared(symAPI) -- recount the cleared markers		
-		sendClientCommand(player,Exterminator.MOD_ID,'AddClearedMarker',{playerX,playerY})
-		print('Exterminator.addClearedMarker:SendClientCommand')
+		if newSymbol then
+			newSymbol:setAnchor(0.5, 0.5)
+			newSymbol:setScale(0.5) --DEBUG set scale to 0.01 so it cant be deleted by player
+			newSymbol:setRGBA(51, 255, 48, 200)
+			Exterminator.ClearedAreaBeep() --play sound for area cleared
+			Exterminator.countCleared(symAPI) -- recount the cleared markers
+			if isClient() then
+			sendClientCommand(player,Exterminator.MOD_ID,'AddClearedMarker',{playerX,playerY})
+			print('Exterminator.addClearedMarker:SendClientCommand')
+			end
+		else
+			print('Exterminator.addClearedMarker:Failed to create marker')
+		end
 	end
 	--print(printDebug)
 end
