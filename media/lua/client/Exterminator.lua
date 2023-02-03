@@ -47,21 +47,21 @@ local currentCellMinX = 0
 local currentCellMaxX = 0
 local currentCellMinY = 0
 local currentCellMaxY = 0
-local currentZone = nil;
-local doZombieDebugScan = true -- set to true to run giant map scan
-local lastDebugScan = -1
-local lastDebugScanInterval = 2
-local debugScanMinX = 0
-local debugScanMaxX = 19800
-local debugScanMinY = 0
-local debugScanMaxY = 15900
-local debugScanStartX = 50
-local debugScanStartY = 7050
-local debugScanCurrentX = debugScanStartX
-local debugScanCurrentY = debugScanStartY
-local debugScanMoveIntervalX = 100
-local debugScanMoveIntervalY = 100
-local debugFileOutputPath = 'TileData.txt'
+local currentGridB = nil;
+local currentGridBx = 0
+local currentGridBy = 0
+local currentGridC = nil;
+local currentGridCx = 0
+local currentGridCy = 0
+local currentGrids = {}
+--locals required for managing position of zombie count text etc.. 
+local screenX = 65;
+local screenY = 13;
+local textManager = getTextManager();
+local updateInterval = 10; 
+local timeSinceLastUpdate = -1;
+local isItemOn = false;
+local lastHeldItem = ""
 
 --starts the Zombie scanner mod
 function Exterminator.Initialize()
@@ -81,7 +81,6 @@ function Exterminator.Initialize()
 		Exterminator.OnEquipPrimary(getPlayer(),getPlayer():getPrimaryHandItem())
 	end
 end
-
 
 function Exterminator.getZombieScanData(playerX,playerY)
 	--print("EXM:getCellData")
@@ -115,103 +114,19 @@ function Exterminator.getZombieScanData(playerX,playerY)
 	end
 end
 
-
-function Exterminator.ZombieDebugScan()
-	if lastDebugScan < 0 then
-	-- get the player
-	local player = getPlayer();
-		if player then
-			--teleport the player to currentX Y
-			player:setX(debugScanCurrentX); --floor required because getX returns a float
-			player:setY(debugScanCurrentY);
-			player:setY(0);
-			player:setLx(debugScanCurrentX); --floor required because getX returns a float
-			player:setLy(debugScanCurrentY);
-			player:setLz(0);
-	
-			--run the scan
-			Exterminator.getZombieScanData(debugScanCurrentX,debugScanCurrentY)
-			--get total zombies
-			local stat_totalZombies = cache_zombieCount
-			--get valid tile check (water is accesible etc)
-			local world = getWorld()
-			local zoneName = debugScanCurrentX .. debugScanCurrentY
-			local zone = getWorld():registerZone(zoneName,"EXM",debugScanCurrentX,debugScanCurrentY,0,debugScanMoveIntervalX,debugScanMoveIntervalY)
-			local squares = zone:getSquares();
-			
-			--loop through squares and check they contain land
-			local countGround = 0
-			local countGroundBreak = 30
-			if squares then
-				for i = 0, squares:size() - 1,1 do
-					local groundtype = squares:get(i):getFloor():hasWater(); --TODO DEBUG Only remove later
-					print(groundtype)
-					if groundtype == false then
-					countGround = countGround +1;
-					end
-					if countGround > countGroundBreak then
-					break
-					end
-				end
-			end
-
-			local stat_groundType
-			if countGround < countGroundBreak then
-				stat_groundType = "Water"
-				else
-				stat_groundType = "Ground"
-			end
-
-			--get zombie density
-			local stat_zombieDensity = zone:getZombieDensity()
-
-			--dispose zone
-			zone:Dispose();
-
-			--write to log and file 
-			local debugLog = getFileWriter(debugFileOutputPath,true,true)
-
-			local stat_logtext = zoneName .."," .. debugScanCurrentX .."," .. debugScanCurrentY .."," .. stat_groundType .."," .. stat_totalZombies .."," .. stat_zombieDensity .. "\n";
-			debugLog:write(stat_logtext)
-			debugLog:close()
-			print(stat_logtext)
-			
-			--next tile logic
-			debugScanCurrentX = debugScanCurrentX + debugScanMoveIntervalX
-			if debugScanCurrentX > debugScanMaxX then
-				debugScanCurrentX = debugScanStartX
-				debugScanCurrentY = debugScanCurrentY + debugScanMoveIntervalY
-				if debugScanCurrentY > debugScanMaxY then
-					--end the scan
-					Events.OnPostUIDraw.Remove(Exterminator.ZombieDebugScan)
-				end
-			end
-			lastDebugScan = lastDebugScanInterval
-		end
-	else
-	lastDebugScan = lastDebugScan - 1
-	end
-end
-
 function Exterminator.getDistanceToZombie(playerX,playerY,zombieX,zombieY)
 	distanceToZombie = math.sqrt((math.pow(zombieX-playerX,2)+math.pow(zombieY-playerY,2)));
 	return distanceToZombie
 end
 
---locals required for managing position of zombie count text etc.. 
-local screenX = 65;
-local screenY = 13;
-local textManager = getTextManager();
-local updateInterval = 10; 
-local timeSinceLastUpdate = -1;
-local isItemOn = false;
-local lastHeldItem = ""
 function Exterminator.runZombieScanner()
 	local player = getPlayer();
+	local playerX --floor required because getX returns a float
+	local playerY 	
 	--get the player position
 	if player then
-		local playerX = floor(player:getX()); --floor required because getX returns a float
-		local playerY = floor(player:getY());		
+		playerX = floor(player:getX()); --floor required because getX returns a float
+		playerY = floor(player:getY());		
 		if timeSinceLastUpdate < 0 then		
 			--get the player check the zombie scanner is on.. it emits light as means of turning on			
 			local itemOn = player:getPrimaryHandItem():isEmittingLight();
@@ -222,7 +137,7 @@ function Exterminator.runZombieScanner()
 				-- get zombie scan data from surroundins
 				Exterminator.getZombieScanData(playerX,playerY)
 				isItemOn = true;
-				--Exterminator.updateCellLimits(playerX,playerY) --TODO was been used for debugging
+				Exterminator.updateGridVisible(playerX,playerY) -- This gets the scan zones 
 			else
 			isItemOn = false;
 			end
@@ -236,13 +151,13 @@ function Exterminator.runZombieScanner()
 	local text_zombieCount =  "Zombie Count = " .. cache_zombieCount;
 	local clearedPercentage = floor(clearedMarkers/clearedMarkersToWin);
 	local text_clearedPerctange = "Cleared Area = " .. tostring(clearedPercentage) .. "% (" .. clearedMarkers .. "/" .. clearedMarkersToWin .. ")";	
-	local text_cellbounds = "Cell Bounds = X " .. currentCellMinX .. "," .. currentCellMaxX .. " Y " .. currentCellMinY .. "," .. currentCellMaxY;
+	local text_playerPos = "Current Position = X " .. playerX .. " Y " .. playerY;
 	textManager:DrawString(UIFont.Large, screenX, screenY, text_zombieCount, 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 30, text_clearedPerctange, 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 60, tostring(timeSinceLastBeep), 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 90, tostring(timeSinceLastUpdate), 0.1, 0.8, 1, 1);
 	textManager:DrawString(UIFont.Large, screenX, screenY + 120, tostring(isItemOn), 0.1, 0.8, 1, 1);
-	textManager:DrawString(UIFont.Large, screenX, screenY + 150, text_cellbounds, 0.1, 0.8, 1, 1);
+	textManager:DrawString(UIFont.Large, screenX, screenY + 150, text_playerPos, 0.1, 0.8, 1, 1);
 
 	if player and isItemOn then
 		local playerX = floor(player:getX()); --floor required because getX returns a float
@@ -262,7 +177,6 @@ function Exterminator.runZombieScanner()
 		end
 	end
 end
-
 
 function Exterminator.ScannerFunctionMk1(zombieCount,zombieDistance)
 
@@ -309,7 +223,6 @@ function Exterminator.ClearedAreaBeep()
 	soundManager:PlaySound("ClearedAreaBeep",false,10)
 end
 
-
 function Exterminator.OnEquipPrimary(character,item)
 	--print("EXM:OnEquipPrimary")
 	if not character:isLocalPlayer() then return end
@@ -320,11 +233,6 @@ function Exterminator.OnEquipPrimary(character,item)
 	else
 		Events.OnPostUIDraw.Remove(Exterminator.runZombieScanner)	
 	end	
-
-	if doZombieDebugScan then
-		Events.OnPostUIDraw.Add(Exterminator.ZombieDebugScan)
-		doZombieDebugScan = false
-	end
 end
 
 function Exterminator.isZombieScanner(item)
@@ -365,24 +273,39 @@ function Exterminator.getSymAPI(map_item)
   return map_api:getSymbolsAPI()
 end
 
-function Exterminator.updateCellLimits(playerX,playerY)
-	local theWorld = getWorld()
-	local printDebug1 = "EXM:updateCellLimits: MAPAPI " .. tostring(theWorld);
-	print(printDebug1)
-
-	if theWorld then	
-		if currentZone then
-		--register a new zone (this will work we can dispose and open new zones as they become visibile..
-		currentCellMinX = currentZone:getX();
-		currentCellMaxX = theWorld:getLuaPosX();
-		currentCellMinY = currentZone:getY();
-		currentCellMaxY = theWorld:getLuaPosY();		
-		else
-		currentZone = theWorld:registerZone("CurrentZone","Clearing", playerX,playerY,0,200,200)
+function Exterminator.updateGridVisible(playerX,playerY)
+	local gridAsize = 2500
+	local gridBsize = 500
+	local gridCsize = 100
+	currentGridBx = floor(playerX/gridBsize)*gridBsize
+	currentGridBy = floor(playerY/gridBsize)*gridBsize
+	currentGridB = "B" .. currentGridBx .. '_' .. currentGridBy	
+	currentGridCx = floor(playerX/gridCsize)*gridCsize
+	currentGridCy = floor(playerY/gridCsize)*gridCsize
+	currentGridC = currentGridBx .. '_' .. currentGridBy
+	local gridCount = 1
+	for i=-1,1,1 do
+		currentgrids[i] = {}
+		local iGridX = currentGridCx + (i*gridCsize)		
+		for j=-1,1,1 do
+			local iGridY = currentGridCy + (j*gridCsize)
+			--test if point is valud
+			local gridRef = iGridX .. "_" .. iGridY
+			if  Exterminator.isGridPointValid(gridRef) then
+			currentgrids[gridCount] = gridRef
+			gridCount = gridCount + 1
+			end
 		end
-	local printDebug = "EXM:updateCellLimits: X " .. tostring(currentZone:getZombieDensity());
-	print(printDebug)
-	end
+	end	
+
+end
+
+function Exterminator.isGridPointValid(gridRef,gridX,gridY)
+--TODO get Grid a
+-- TODO get Grid B1
+--TODO check grid exists
+if ExterminatorGrid[gridRef] then
+
 end
 
 function Exterminator.CheckExistingCleared(symAPI,playerX,playerY)
@@ -404,7 +327,7 @@ function Exterminator.CheckExistingCleared(symAPI,playerX,playerY)
 		end
 	end
   end
-return isNew
+	return isNew
 end
 
 function Exterminator.countCleared(symAPI)
@@ -419,9 +342,8 @@ function Exterminator.countCleared(symAPI)
 			countCleared = countCleared + 1
 		end
 	end
-clearedMarkers = countCleared;
+	clearedMarkers = countCleared;
 end
-
 
 function Exterminator.addClearedMarker (player,playerX,playerY)
 
