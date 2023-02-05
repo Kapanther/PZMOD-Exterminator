@@ -31,7 +31,8 @@ Exterminator.DefaultClientConfig = {
 
 require 'ISUI/Maps/ISWorldMap'
 require 'ISUI/Maps/ISMiniMap'
-MapSymbolDefinitions.getInstance():addTexture("EXMclearedDot", "media/ui/LootableMaps/EXMclearedDot.png")
+MapSymbolDefinitions.getInstance():addTexture("EXMcleared", "media/ui/LootableMaps/EXMcleared.png")
+MapSymbolDefinitions.getInstance():addTexture("EXMinfested", "media/ui/LootableMaps/EXMinfested.png")
 
 local floor = math.floor
 local cache_zombieCount = 0;
@@ -42,7 +43,8 @@ local clearedMarkers = 1;
 local timeSinceLastBeep = -1;
 local zombieDistanceLimitMk1 = 75 -- for mk1 scanner
 local zombieDistanceLimitMk2 = 150 -- for mk2 scanner
-local clearedTexture = "EXMclearedDot";
+local textureCleared = "EXMcleared";
+local textureInfested = "EXMinfested";
 local currentCellMinX = 0
 local currentCellMaxX = 0
 local currentCellMinY = 0
@@ -58,12 +60,15 @@ local currentGridC = nil;
 local currentGridCx = 0
 local currentGridCy = 0
 local currentGrids = {}
+local currentZombies = {}
+local playerX = 0
+local playerY = 0
 --locals required for managing position of zombie count text etc.. 
 local screenX = 65;
 local screenY = 13;
 local textManager = getTextManager();
-local updateInterval = 10; 
-local timeSinceLastUpdate = -1;
+local zombieScannerUpdateInterval = 20; 
+local zombieScannerTimeSinceLastUpdate = -1;
 local isItemOn = false;
 local lastHeldItem = ""
 
@@ -84,6 +89,9 @@ function Exterminator.Initialize()
 	if getPlayer() and getPlayer():getPrimaryHandItem() then		
 		Exterminator.OnEquipPrimary(getPlayer(),getPlayer():getPrimaryHandItem())
 	end
+
+	--Add the UI
+	Events.OnPostUIDraw.Add(Exterminator.onUITick) 
 end
 
 function Exterminator.getZombieScanData(playerX,playerY)
@@ -99,17 +107,17 @@ function Exterminator.getZombieScanData(playerX,playerY)
 	local zombie = nil;
 	local minDistanceToZombie = 9999
 	local distanceToZombie = 9999
-	if zombieCount > 0 then		
+	if zombieCount > 0 then
+		currentZombies = {} --need to clear the list		
 		for i=0,zombieCount-1,1 do
 			--print("EXM:getZombieScanData:getZombieCountArray")
             zombie = zombieList:get(i); -- todo swithc back to i
 			if zombie then
-				local zombX = zombie:getX(); --get x
-				local zombY = zombie:getY(); --get y
-				local distanceToZombie = Exterminator.getDistanceToZombie(playerX,playerY,zombX,zombY)
-				--local printZombtext = "Z." .. i .. "x = " .. zombX .. " y = " .. zombY .. "D = " .. distanceToZombie;
-				--print(printZombtext) --DEBUGONLY
-				--TODO probably need to do the buy grid zombie checks in here
+				local zombX = zombie:getX(); 
+				local zombY = zombie:getY(); 
+				local distanceToZombie = Exterminator.getDistanceToZombie(playerX,playerY,zombX,zombY) --needed for scanner to beep
+				local zombieData = {zombX,zombY}
+				currentZombies[i] = zombieData --writes zombie X-Y for analysis in grids later			
 				if distanceToZombie<minDistanceToZombie then
 					minDistanceToZombie = floor(distanceToZombie);
 				end
@@ -126,54 +134,35 @@ end
 
 function Exterminator.runZombieScanner()
 	local player = getPlayer();
-	local playerX = 0--floor required because getX returns a float
-	local playerY = 0
 
 	--#check for player
 	if player then
 		playerX = floor(player:getX()); --floor required because getX returns a float
 		playerY = floor(player:getY());	
 		--RUNS ON A CUSTOM TICK (default = 10ms*10 = every 100ms).. to frequesnt will crash game	
-		if timeSinceLastUpdate < 0 then		
+		if zombieScannerTimeSinceLastUpdate < 0 then		
 			--get the player check the zombie scanner is on.. it emits light as means of turning on			
 			local itemOn = player:getPrimaryHandItem():isEmittingLight();
 			local itemName = player:getPrimaryHandItem():getType();
 			lastHeldItem = itemName;
 			--Check if they are holding a zombie scanner and its turned on
 			if itemOn then
+				Exterminator.updateGridVisible(playerX,playerY) -- This gets the scan zones must be done before zombie scan
 				-- get zombie scan data from surroundins
 				Exterminator.getZombieScanData(playerX,playerY)
 				isItemOn = true;
-				Exterminator.updateGridVisible(playerX,playerY) -- This gets the scan zones 
+				
 			else
 			isItemOn = false;
 			end
-			timeSinceLastUpdate = updateInterval;
+			zombieScannerTimeSinceLastUpdate = zombieScannerUpdateInterval;
 		else
-			timeSinceLastUpdate = timeSinceLastUpdate - 1;
+			zombieScannerTimeSinceLastUpdate = zombieScannerTimeSinceLastUpdate - 1;
 		end
 	end
-	-- RUN EVERY UI TICK (1tick = 10ms)
-	-- DEBUG ONLY -- display zombie count and distance by un commenting these next 6 lines
-	local text_zombieCount =  "Zombie Count = " .. cache_zombieCount;
-	local clearedPercentage = floor(clearedMarkers/clearedMarkersToWin);
-	local text_clearedPerctange = "Cleared Area = " .. tostring(clearedPercentage) .. "% (" .. clearedMarkers .. "/" .. clearedMarkersToWin .. ")";	
-	local text_playerPos = "Current Position = X " .. playerX .. " Y " .. playerY;
-	local text_currentgrids = "Grids:"
-	for grid,value in pairs(currentGrids) do
-		text_currentgrids = text_currentgrids .. " " .. grid
-	end
-	textManager:DrawString(UIFont.Large, screenX, screenY, text_zombieCount, 0.1, 0.8, 1, 1);
-	textManager:DrawString(UIFont.Large, screenX, screenY + 30, text_clearedPerctange, 0.1, 0.8, 1, 1);
-	textManager:DrawString(UIFont.Large, screenX, screenY + 60, tostring(timeSinceLastBeep), 0.1, 0.8, 1, 1);
-	textManager:DrawString(UIFont.Large, screenX, screenY + 90, tostring(timeSinceLastUpdate), 0.1, 0.8, 1, 1);
-	textManager:DrawString(UIFont.Large, screenX, screenY + 120, tostring(isItemOn), 0.1, 0.8, 1, 1);
-	textManager:DrawString(UIFont.Large, screenX, screenY + 150, text_playerPos, 0.1, 0.8, 1, 1);
-	textManager:DrawString(UIFont.Large, screenX, screenY + 180, text_currentgrids, 0.1, 0.8, 1, 1);
 
+	-- RUN EVERY UI TICK (1tick = 10ms)
 	if player and isItemOn then
-		local playerX = floor(player:getX()); --floor required because getX returns a float
-		local playerY = floor(player:getY());
 			--if zombie count is less than zero else run the scanner logic
 		if cache_zombieCount > 0 then
 			--check which scanner is been help and run the zombie scanner
@@ -187,6 +176,32 @@ function Exterminator.runZombieScanner()
 			else
 			Exterminator.addClearedMarker(player,currentGridCx,currentGridCy) --This will clear the current grid(which is middle of 9)
 		end
+	end
+end
+
+function Exterminator.onUITick()
+	-- DEBUG ONLY -- display zombie count and distance by un commenting these next 6 lines
+	local text_zombieCount =  "Zombie Count = " .. cache_zombieCount;
+	local clearedPercentage = floor(clearedMarkers/clearedMarkersToWin);
+	local text_clearedPerctange = "Cleared Area = " .. tostring(clearedPercentage) .. "% (" .. clearedMarkers .. "/" .. clearedMarkersToWin .. ")";	
+
+	textManager:DrawString(UIFont.Large, screenX, screenY, text_zombieCount, 0.1, 0.8, 1, 1);
+	textManager:DrawString(UIFont.Large, screenX, screenY + 30, text_clearedPerctange, 0.1, 0.8, 1, 1);
+
+	if isItemOn then
+		
+		local text_playerPos = "Current Position = X " .. playerX .. " Y " .. playerY;
+		local text_currentgrids = "Grids:"
+		for grid,value in pairs(currentGrids) do
+			text_currentgrids = text_currentgrids .. " " .. tostring(value[4])
+		end
+		textManager:DrawString(UIFont.Large, screenX, screenY + 60, tostring(timeSinceLastBeep), 0.1, 0.8, 1, 1);
+		textManager:DrawString(UIFont.Large, screenX, screenY + 90, tostring(zombieScannerTimeSinceLastUpdate), 0.1, 0.8, 1, 1);
+		textManager:DrawString(UIFont.Large, screenX, screenY + 120, tostring(isItemOn), 0.1, 0.8, 1, 1);
+		textManager:DrawString(UIFont.Large, screenX, screenY + 150, text_playerPos, 0.1, 0.8, 1, 1);
+		textManager:DrawString(UIFont.Large, screenX, screenY + 180, text_currentgrids, 0.1, 0.8, 1, 1);
+	else
+		textManager:DrawString(UIFont.Large, screenX, screenY + 60, "(No Zombie Scanner Equipped)", 0.1, 0.8, 1, 1);
 	end
 end
 
@@ -243,7 +258,8 @@ function Exterminator.OnEquipPrimary(character,item)
 	if Exterminator.isZombieScanner(item) then
 		Events.OnPostUIDraw.Add(Exterminator.runZombieScanner)
 	else
-		Events.OnPostUIDraw.Remove(Exterminator.runZombieScanner)	
+		Events.OnPostUIDraw.Remove(Exterminator.runZombieScanner)
+		isItemOn = false; --required to cleanup UI	
 	end	
 end
 
@@ -302,13 +318,31 @@ function Exterminator.updateGridVisible(playerX,playerY)
 			local iGridA = Exterminator.getGridRef('A',iGridX,iGridY)
 			local iGridB = Exterminator.getGridRef('B',iGridX,iGridY)	
 			local iGridC = Exterminator.getGridRef('C',iGridX,iGridY)
+			local hasZombies = false			
 			if  Exterminator.isGridPointValid(iGridA,iGridB,iGridC) then
-				currentGrids[gridCount] = iGridC				
+				if currentZombies then
+					for index,value in pairs(currentZombies) do
+						hasZombies = Exterminator.isZombieInGrid(iGridX,iGridY,value[1],value[2])
+						if hasZombies == true then
+							break
+						end
+					end
+				end				
+				local gridWrite = {iGridC,iGridX,iGridY,hasZombies}
+				currentGrids[gridCount] = gridWrite			
 				gridCount = gridCount + 1
 			end
 		end
 	end	
+end
 
+function Exterminator.isZombieInGrid(gridX,gridY,zombX,zombY)	
+	local gridOffset = gridCsize/2	
+	if zombX <= gridX+gridOffset and zombX >= gridX-gridOffset and zombY <= gridY+gridOffset and zombY >= gridY-gridOffset then
+		return true		
+	else		
+		return false
+	end
 end
 
 function Exterminator.getGridRef(gridType,gridX,gridY)
@@ -363,15 +397,15 @@ end
 function Exterminator.CheckExistingCleared(symAPI,gridX,gridY)
   local distanceClearance = 40
   local isNew = true;
-  local cnt = symAPI:getSymbolCount()
+  local cnt = symAPI:getSymbolCount()  
 
-  --TODO need to count the total cleared here to get area cleared
+  --TODO need to get difference between cleared and uncleared
   for i = 0, cnt - 1 do
 	local sym = symAPI:getSymbolByIndex(i)
 	local sym_x = sym:getWorldX();
 	local sym_y = sym:getWorldY();
 	local sym_texture = sym:getSymbolID();
-	if sym_texture == clearedTexture then
+	if sym_texture == textureCleared then
 		local distToSymbol = Exterminator.getDistanceToSymbol(gridX,gridY,sym_x,sym_y)
 		if distToSymbol < distanceClearance then
 			isNew = false;
@@ -390,7 +424,7 @@ function Exterminator.countCleared(symAPI)
 		local sym_texture = sym:getSymbolID();
 		--local printDebug = "Exterminator.countCleared " .. sym_texture .. " " .. clearedTexture;
 		--print(printDebug);
-		if sym_texture == clearedTexture then
+		if sym_texture == textureCleared then
 			countCleared = countCleared + 1
 		end
 	end
@@ -405,7 +439,7 @@ function Exterminator.addClearedMarker (player,gridX,gridY)
 	local isNew = Exterminator.CheckExistingCleared(symAPI,gridX,gridY)
 	--local printDebug = "Exterminator.addClearedMarker SC=" .. symbolCount .. " isNew = " .. tostring(isNew);
 	if isNew then
-		local newSymbol = symAPI:addTexture(clearedTexture,gridX,gridY)
+		local newSymbol = symAPI:addTexture(textureCleared,gridX,gridY)
 		if newSymbol then
 			newSymbol:setAnchor(0.5, 0.5)
 			newSymbol:setScale(0.5) --DEBUG set scale to 0.01 so it cant be deleted by player
@@ -431,7 +465,7 @@ function Exterminator.recieveClearedMarker (playerX,playerY)
 	local isNew = Exterminator.CheckExistingCleared(symAPI,playerX,playerY)
 	--local printDebug = "Exterminator.addClearedMarker SC=" .. symbolCount .. " isNew = " .. tostring(isNew);
 	if isNew then
-		local newSymbol = symAPI:addTexture(clearedTexture,playerX,playerY)
+		local newSymbol = symAPI:addTexture(textureCleared,playerX,playerY)
 		newSymbol:setAnchor(0.5, 0.5)
 		newSymbol:setScale(5)
 		newSymbol:setRGBA(51, 255, 48, 200)
