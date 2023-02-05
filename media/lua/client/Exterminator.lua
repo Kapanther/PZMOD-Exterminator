@@ -63,9 +63,10 @@ local currentGridMaxX = 0
 local currentGridMinY = 0
 local currentGridMaxY = 0
 local currentGrids = {}
-local currentMarkerGrid = nil;
+local currentMarkerGrid = "NotAGrid";
 local currentMarkers = {}
 local currentZombies = {}
+local refreshMarkers = false
 local playerX = 0
 local playerY = 0
 --locals required for managing position of zombie count text etc.. 
@@ -154,7 +155,8 @@ function Exterminator.runZombieScanner()
 			if itemOn then
 				Exterminator.getZombieScanData(playerX,playerY) -- get zombie scan data from surroundins
 				Exterminator.updateGridVisible(playerX,playerY) -- This gets the scan zones must be after zombie scan
-				if currentGridC ~= currentMarkerGrid then
+				if currentGridC ~= currentMarkerGrid or refreshMarkers == true then
+					print("runZombieScanner:GetMapMArkers")
 					Exterminator.getMapMarkers(currentGridMinX,currentGridMaxX,currentGridMinY,currentGridMaxY) --Checks Previous Markers outside the current cell and marks them active if zombies are in them.
 					currentMarkerGrid = currentGridC
 				end
@@ -210,8 +212,11 @@ function Exterminator.onUITick()
 			text_currentgrids = text_currentgrids .. " " .. tostring(value[4])
 		end
 		local countMarkers = 99999
-		if #currentMarkers > 0 then
-			countMarkers = #currentMarkers
+		if currentMarkers then
+			countMarkers = 0
+			for i,v in pairs(currentMarkers) do
+				countMarkers = countMarkers + 1
+			end
 		end
 		local text_currentMarkers = "Marker Count: " .. countMarkers
 		textManager:DrawString(UIFont.Large, screenX, screenY + 90, tostring(timeSinceLastBeep), 0.1, 0.8, 1, 1);
@@ -409,6 +414,7 @@ function Exterminator.refreshMapMarkers(player)
 		for iNewMaker,vNewMarker in pairs(addMarkers) do
 			Exterminator.addMarker(symAPI,vNewMarker[3],vNewMarker[1],vNewMarker[2])
 		end
+		refreshMarkers = true
 	end
 	if removeMarkers then
 		for iRemoveMaker,vRemoveMarker in pairs(removeMarkers) do
@@ -430,7 +436,7 @@ function Exterminator.updateGridVisible(playerX,playerY)
 	currentGridB = Exterminator.getGridRef('B',playerX,playerY)	
 	currentGridC = Exterminator.getGridRef('C',playerX,playerY)
 	currentGridCx = Exterminator.getGridRef('Cx',playerX,playerY)	
-	currentGridCy = Exterminator.getGridRef('Cy',playerX,playerY)	
+	currentGridCy = Exterminator.getGridRef('Cy',playerX,playerY)		
 	local gridRange = 2	
 	local gridCount = 1
 
@@ -589,6 +595,7 @@ function Exterminator.addMarker (symAPI,markerType,gridX,gridY)
 		newSymbol:setAnchor(0.5, 0.5)
 		newSymbol:setScale(1) --DEBUG set scale to 0.01 so it cant be deleted by player
 		newSymbol:setRGBA(51, 255, 48, 200)
+		--TODO only beep if full grid is cleared rather than jsut one area
 		Exterminator.ClearedAreaBeep() --play sound for area cleared		
 	else
 		print('Exterminator.addClearedMarker:Failed to create marker')
