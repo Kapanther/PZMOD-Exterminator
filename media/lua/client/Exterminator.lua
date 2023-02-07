@@ -443,7 +443,7 @@ function Exterminator.refreshMapMarkers(player)
 		if getNewMapMarkers then
 			local username = player:getUsername()
 			local markerExtents = {currentGridMinX,currentGridMaxX,currentGridMinY,currentGridMaxY}
-			sendClientCommand(player,Exterminator.MOD_ID,'sendMarkerUpdates',{addMarkers,markerExtents,username}) 		 
+			sendClientCommand(Exterminator.MOD_ID,'sendMarkerUpdates',{addMarkers,markerExtents,username}) 		 
 		end
 	end
 end
