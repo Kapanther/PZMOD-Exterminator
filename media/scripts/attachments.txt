@@ -1,0 +1,40 @@
+module Base
+{
+	model FemaleBody
+	{
+		mesh = Skinned/FemaleBody,
+
+        attachment ZombieScanner_L
+		{
+			offset = -0.0080 -0.0600 0.0700,
+			rotate = 94.0000 0.0000 104.0000,
+			bone = Bip01_Spine1,
+		}
+
+		attachment ZombieScanner_R
+		{
+			offset = -0.0060 0.0600 0.0620,
+			rotate = -94.0000 0.0000 -98.0000,
+			bone = Bip01_Spine1,
+		}
+    }
+    model MaleBody
+	{
+		mesh = Skinned/MaleBody,
+
+		attachment ZombieScanner_L
+		{
+			offset = -0.0060 -0.0600 0.0620,
+			rotate = -94.0000 0.0000 -98.0000,
+			bone = Bip01_Spine1,
+		}
+
+		attachment ZombieScanner_R
+		{
+			offset = -0.0060 0.0600 0.0620,
+			rotate = -94.0000 0.0000 -98.0000,
+			bone = Bip01_Spine1,
+		}
+    }
+}
+

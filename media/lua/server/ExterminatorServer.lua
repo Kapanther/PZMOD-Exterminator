@@ -1,24 +1,30 @@
---local mysql = require "luasql.mysql"
-
 local server_config = {};
---local env  = mysql:mysql()
---local conn = env:connect("C:\Users\bkant\Zomboid\mods\Exterminator\media\db\DefaultGridDatabase.db",'main','Grid')
---print(env,conn)
+local syncTimer = -1
+local syncInterval = 2000
 
-
-local function onServerStart() --TODO server config
+--TODO server config
+local function onServerStart() 
     
 end
 
 local function onClientCommand(module, command, player, args)
-    if module ~= "Exterminator" then --TODO this is hard  coded right now consider linking the mod ID to to it
+    --TODO this is hard  coded right now consider linking the mod ID to to it
+    if module ~= "Exterminator" then
         return
     end
 
     print( ('Exterminator - Received command "%s" from client "%s"'):format(command, player:getUsername()) )
 
     if command == 'sendMarkerUpdates' then
-        sendServerCommand(module, 'recieveMarkerUpdates', args)
+        sendServerCommand(player,module, 'sendMarkerUpdates', args)
+    end
+
+    if command == 'requestMarkerSync' then
+        sendServerCommand(player,module, 'requestMarkerSync', args)
+    end
+
+    if command == 'sendMarkerSync' then
+        sendServerCommand(player,module, 'sendMarkerSync', args)
     end
 end
 
