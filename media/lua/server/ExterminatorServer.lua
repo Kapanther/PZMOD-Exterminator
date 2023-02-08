@@ -16,15 +16,15 @@ local function onClientCommand(module, command, player, args)
     print( ('Exterminator - Received command "%s" from client "%s"'):format(command, player:getUsername()) )
 
     if command == 'sendMarkerUpdates' then
-        sendServerCommand(player,module, 'sendMarkerUpdates', args)
+        sendServerCommand(module, 'sendMarkerUpdates', args)
     end
 
     if command == 'requestMarkerSync' then
-        sendServerCommand(player,module, 'requestMarkerSync', args)
+        sendServerCommand(module, 'requestMarkerSync', args)
     end
 
     if command == 'sendMarkerSync' then
-        sendServerCommand(player,module, 'sendMarkerSync', args)
+        sendServerCommand(module, 'sendMarkerSync', args)
     end
 end
 

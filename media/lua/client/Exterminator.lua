@@ -34,6 +34,7 @@ require 'ISUI/Maps/ISMiniMap'
 MapSymbolDefinitions.getInstance():addTexture("EXMcleared", "media/ui/LootableMaps/EXMcleared.png")
 MapSymbolDefinitions.getInstance():addTexture("EXMinfested", "media/ui/LootableMaps/EXMinfested.png")
 MapSymbolDefinitions.getInstance():addTexture("EXMdiscovered", "media/ui/LootableMaps/EXMdiscovered.png")
+MapSymbolDefinitions.getInstance():addTexture("EXMgridCleared", "media/ui/LootableMaps/EXMgridCleared.png")
 
 local floor = math.floor
 local cache_zombieCount = 0;
@@ -47,12 +48,14 @@ local zombieDistanceLimitMk2 = 150 -- for mk2 scanner
 local textureCleared = "EXMcleared";
 local textureInfested = "EXMinfested";
 local textureDiscovered = "EXMdiscovered";
+local textureGridCleared = "EXMgridCleared";
 local gridAsize = 2500
 local gridBsize = 500
 local gridCsize = 100
 local currentGridA = nil;
 local currentGridB = nil;
-local currentGridBcleared = 0;
+local currentGridBcleared = false;
+local currentGridBclearedCount = 0
 local currentGridBx = 0
 local currentGridBy = 0
 local currentGridC = nil;
@@ -76,6 +79,7 @@ local textManager = getTextManager();
 local zombieScannerUpdateInterval = 50; 
 local zombieScannerTimeSinceLastUpdate = -1;
 local isItemOn = false;
+local isScannerEquipped = false
 local lastHeldItem = ""
 local showDebugUI = true
 
@@ -193,9 +197,13 @@ function Exterminator.onUITick()
 	-- DEBUG ONLY -- display zombie count and distance by un commenting these next 6 lines
 
 	--persistent UI
+	local text_currentGridCleared = 'No Grid Detected'
+	if currentGridB then
+		text_currentGridCleared = 'Current Grid = '.. currentGridB .. ' Clear (' .. currentGridBclearedCount .. '/9) Cleared = ' .. tostring(currentGridBcleared); 
+	end	
 	local clearedPercentage = floor(clearedMarkers/clearedMarkersToWin);
-	local text_clearedPerctange = "Cleared Area = " .. tostring(clearedPercentage) .. "% (" .. clearedMarkers .. "/" .. clearedMarkersToWin .. ")";	
-	textManager:DrawString(UIFont.Large, screenX, screenY, text_clearedPerctange, 0.1, 0.8, 1, 1);
+	local text_clearedPerctange = 'Cleared Area = ' .. tostring(clearedPercentage) .. "% (" .. clearedMarkers .. "/" .. clearedMarkersToWin .. ")";	
+	textManager:DrawString(UIFont.Large, screenX, screenY, text_currentGridCleared, 0.1, 0.8, 1, 1);
 
 	--Only if Zombie Scanner on UI
 	if isItemOn then
@@ -281,7 +289,7 @@ function Exterminator.OnEquipPrimary(character,item)
 		Events.OnPostUIDraw.Add(Exterminator.runZombieScanner)
 	else
 		Events.OnPostUIDraw.Remove(Exterminator.runZombieScanner)
-		isItemOn = false; --required to cleanup UI	
+		isItemOn = false; --required to cleanup TODO maybe this could be cleaner	
 	end	
 end
 
@@ -363,58 +371,76 @@ function Exterminator.refreshMapMarkers(player)
 	--GridTable = GridRef,GridX,GridY,HasZombies,GridB
 	--MarkerTAble = index,X,Y,Texture
 	for iGrid,vGrid in pairs(currentGrids) do
+		local gCgrid = vGrid[1]
+		local gX = vGrid[2]
+		local gY = vGrid[3]
+		local gHasZombies = vGrid[4]
+		local gBgrid = vGrid[5]
 		local markerExists = false
 		local next = next
 		if currentMarkers == {} then
 			markerExists = false
 		else
 			for iMarker,vMarker in pairs(currentMarkers) do
-				if vGrid[2] == vMarker[2] then --X check
-					if vGrid[3] == vMarker[3] then --y check
+				local mIndex = vMarker[1]
+				local mX = vMarker[2]
+				local mY = vMarker[3]
+				local mTexture = vMarker[4]
+				if gX == mX then --X check
+					if gY == mY then --y check
+						--TODO consider ignoring marker 
 						markerExists = true;						
-						if vGrid[4] then -- zone has zombies
-							if vMarker[4] ~= textureInfested then
+						if gHasZombies then -- zone has zombies
+							if mTexture ~= textureInfested then
 								-- Queue marker for Deletion
-								print("refreshMapMarkers:TileIsNowInfest " .. vMarker[4])
-								removeMarkers[removeMarkersCount] = {vMarker[1],vMarker[2],vMarker[3]}--RemoveMarkerTable = Index,X,Y
+								print("refreshMapMarkers:TileIsNowInfest " .. mTexture)
+								removeMarkers[removeMarkersCount] = {mIndex,mX,mY}--RemoveMarkerTable = Index,X,Y
 								removeMarkersCount = removeMarkersCount + 1
 								--add new marker textureInfested
-								addMarkers[addMarkersCount] = {vGrid[2],vGrid[3],textureInfested}--AddMarkerTable = X,Y,Texture
+								addMarkers[addMarkersCount] = {gX,gY,textureInfested}--AddMarkerTable = X,Y,Texture
 								addMarkersCount = addMarkersCount + 1	
 							end							
 							else
-							if vGrid[1] == currentGridC and vMarker[4] ~= textureCleared then
+							if gCgrid == currentGridC and mTexture ~= textureCleared then
 								-- Queue marker for Deletion
-								removeMarkers[removeMarkersCount] = {vMarker[1],vMarker[2],vMarker[3]}--RemoveMarkerTable = Index,X,Y
+								removeMarkers[removeMarkersCount] = {mIndex,mX,mY}--RemoveMarkerTable = Index,X,Y
 								removeMarkersCount = removeMarkersCount + 1
 								--add new marker textureInfested
-								addMarkers[addMarkersCount] = {vGrid[2],vGrid[3],textureCleared} --AddMarkerTable = X,Y,Texture
-								addMarkersCount = addMarkersCount + 1
-								elseif vGrid[5] == currentGridB and vMarker[4] == textureCleared then
-								currentGridClearedCount = currentGridClearedCount + 1 --Add total total cleared markers
+								addMarkers[addMarkersCount] = {gX,gY,textureCleared} --AddMarkerTable = X,Y,Texture
+								addMarkersCount = addMarkersCount + 1								
 							end
+						end						
+						if gBgrid == currentGridB and mTexture == textureCleared then
+							currentGridClearedCount = currentGridClearedCount + 1 --Add total total cleared markers
 						end
 					end
 				end
 			end	
 		end		
 		if markerExists == false then			
-			if vGrid[4] then
+			if gHasZombies then
 				--Create infested marker
-				addMarkers[addMarkersCount] = {vGrid[2],vGrid[3],textureInfested} --AddMarkerTable = X,Y,Texture
+				addMarkers[addMarkersCount] = {gX,gY,textureInfested} --AddMarkerTable = X,Y,Texture
 				addMarkersCount = addMarkersCount + 1
 				else
-				if vGrid[1] == currentGridC then
+				if gCgrid == currentGridC then
 					--Create cleared marker
-					addMarkers[addMarkersCount] = {vGrid[2],vGrid[3],textureCleared} --AddMarkerTable = X,Y,Texture
+					addMarkers[addMarkersCount] = {gX,gY,textureCleared} --AddMarkerTable = X,Y,Texture
 					addMarkersCount = addMarkersCount + 1
 					currentGridClearedCount = currentGridClearedCount + 1	
 					else
 					--Create undiscovered marker
-					addMarkers[addMarkersCount] = {vGrid[2],vGrid[3],textureDiscovered} --AddMarkerTable = X,Y,Texture
+					addMarkers[addMarkersCount] = {gX,gY,textureDiscovered} --AddMarkerTable = X,Y,Texture
 					addMarkersCount = addMarkersCount + 1
 				end
 			end
+		end
+		currentGridBclearedCount = currentGridClearedCount
+		if currentGridClearedCount >= 9 then 
+			currentGridBcleared = true			
+			--TODO add a grid cleared marker
+		else
+			currentGridBcleared = false
 		end
 	end	
 	-- loop through the queue to add markers then remove markers
@@ -428,13 +454,14 @@ function Exterminator.refreshMapMarkers(player)
 	if removeMarkers then
 		local prevMarkerIndex = 99999
 		for iRemoveMaker,vRemoveMarker in pairs(removeMarkers) do
+			local rIndex = vRemoveMarker[1]
 			--remove the marker	
-			if prevMarkerIndex < vRemoveMarker[1] then		
-			symAPI:removeSymbolByIndex((vRemoveMarker[1]-1))
-			prevMarkerIndex = vRemoveMarker[1]
+			if prevMarkerIndex < rIndex then		
+			symAPI:removeSymbolByIndex((rIndex-1))
+			prevMarkerIndex = rIndex
 			else
-			symAPI:removeSymbolByIndex(vRemoveMarker[1])
-			prevMarkerIndex = vRemoveMarker[1]
+			symAPI:removeSymbolByIndex(rIndex)
+			prevMarkerIndex = rIndex
 			end
 		end
 	end
@@ -610,7 +637,7 @@ end
 function Exterminator.requestMarkerSync()
 	local username = getPlayer():getUsername();
 	local currentMarkers = Exterminator.getMarkersAtExtents(0,20000,0,20000)
-	sendClientCommand(player,Exterminator.MOD_ID,'requestMarkerSync',{currentMarkers,username})
+	sendClientCommand(Exterminator.MOD_ID,'requestMarkerSync',{currentMarkers,username})
 end
 
 function Exterminator.sendMarkerSync()
