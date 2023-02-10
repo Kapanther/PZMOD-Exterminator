@@ -54,6 +54,7 @@ local gridBsize = 500
 local gridCsize = 100
 local currentGridA = nil;
 local currentGridB = nil;
+local currentGridBnodecount = 99;
 local currentGridBcleared = false;
 local currentGridBclearedCount = 0
 local currentGridBx = 0
@@ -65,9 +66,15 @@ local currentGridMinX = 0
 local currentGridMaxX = 0
 local currentGridMinY = 0
 local currentGridMaxY = 0
+local currentGridBMinX = 0
+local currentGridBMaxX = 0
+local currentGridBMinY = 0
+local currentGridBMaxY = 0
 local currentGrids = {}
+local currentGridCount = 0
 local currentMarkerGrid = "NotAGrid";
 local currentMarkers = {}
+local currentGridBMarkers = {}
 local currentZombies = {}
 local getNewMapMarkers = false
 local playerX = 0
@@ -160,8 +167,7 @@ function Exterminator.runZombieScanner()
 				Exterminator.getZombieScanData(playerX,playerY) -- get zombie scan data from surroundins
 				Exterminator.updateGridVisible(playerX,playerY) -- This gets the scan zones must be after zombie scan
 				if currentGridC ~= currentMarkerGrid or getNewMapMarkers then
-					getNewMapMarkers = false
-					print("runZombieScanner:GetMapMArkers")
+					getNewMapMarkers = false					
 					Exterminator.getMapMarkers(currentGridMinX,currentGridMaxX,currentGridMinY,currentGridMaxY) --Checks Previous Markers outside the current cell and marks them active if zombies are in them.
 					currentMarkerGrid = currentGridC
 				end
@@ -199,7 +205,7 @@ function Exterminator.onUITick()
 	--persistent UI
 	local text_currentGridCleared = 'No Grid Detected'
 	if currentGridB then
-		text_currentGridCleared = 'Current Grid = '.. currentGridB .. ' Clear (' .. currentGridBclearedCount .. '/9) Cleared = ' .. tostring(currentGridBcleared); 
+		text_currentGridCleared = 'Current Grid = '.. currentGridA .. '.' .. currentGridB .. '.' .. currentGridC .. ' Clear (' .. currentGridBclearedCount .. '/' .. currentGridBnodecount .. ') Cleared = ' .. tostring(currentGridBcleared); 
 	end	
 	local clearedPercentage = floor(clearedMarkers/clearedMarkersToWin);
 	local text_clearedPerctange = 'Cleared Area = ' .. tostring(clearedPercentage) .. "% (" .. clearedMarkers .. "/" .. clearedMarkersToWin .. ")";	
@@ -218,6 +224,7 @@ function Exterminator.onUITick()
 		local text_playerPos = "Current Position = X " .. playerX .. " Y " .. playerY;		
 		local countMarkers = 99999
 		local next = next
+		local text_currentGridCount = "Current Grid Count = " .. currentGridCount
 		if currentMarkers == {} then
 			countMarkers = 9999
 		else
@@ -227,11 +234,14 @@ function Exterminator.onUITick()
 			end
 		end
 		local text_currentMarkers = "Marker Count: " .. countMarkers
+		local text_currentBGridExtents = "Current Grid Extents = X " .. currentGridBMinX .. ',Y' .. currentGridBMaxX .. " : " .. currentGridBMinY .. ',' .. currentGridBMaxY
 		textManager:DrawString(UIFont.Large, screenX, screenY + 90, tostring(timeSinceLastBeep), 0.1, 0.8, 1, 1);
 		textManager:DrawString(UIFont.Large, screenX, screenY + 120, tostring(zombieScannerTimeSinceLastUpdate), 0.1, 0.8, 1, 1);
 		textManager:DrawString(UIFont.Large, screenX, screenY + 150, tostring(isItemOn), 0.1, 0.8, 1, 1);
 		textManager:DrawString(UIFont.Large, screenX, screenY + 180, text_playerPos, 0.1, 0.8, 1, 1);		
 		textManager:DrawString(UIFont.Large, screenX, screenY + 210, text_currentMarkers, 0.1, 0.8, 1, 1);
+		textManager:DrawString(UIFont.Large, screenX, screenY + 240, text_currentGridCount, 0.1, 0.8, 1, 1);
+		textManager:DrawString(UIFont.Large, screenX, screenY + 270, text_currentBGridExtents, 0.1, 0.8, 1, 1);
 	end
 end
 
@@ -331,12 +341,25 @@ function Exterminator.getSymAPI(map_item)
   return map_api:getSymbolsAPI()
 end
 
+function Exterminator.isMarkerInCurrentBgrid(testX,testY)
+	if testX > currentGridBMinX and testX < currentGridBMaxX then
+		if testY > currentGridBMinY and testY < currentGridBMaxY then
+			return true
+		end	
+	end
+	return false
+
+end
+
 function Exterminator.getMapMarkers(minX,maxX,minY,maxY)
 	--cycle through each of the current map markers
 	local symAPI = Exterminator.getSymAPI()
 	local cnt = symAPI:getSymbolCount() 
-	local markerCount = 1 
+	local markerCountCleared = 0 --user for counted cleared markers in current B zone 	
+	local markerCount = 1 --used for writing makrers to current markers
+	local markerBcount = 1 --used for writing B markers
 	currentMarkers = {} -- need to reset the markers
+	currentGridBMarkers = {}
   
 	--TODO is this getting the markers correctly? i think the count might be wrong
 	for i=0,cnt-1,1 do 
@@ -349,19 +372,28 @@ function Exterminator.getMapMarkers(minX,maxX,minY,maxY)
 				if sym_y <= maxY and sym_y >= minY then
 					--add symbol data to the monitored markers
 					local sym_texture = sym:getSymbolID();
-					local markerEntry = {i,sym_x,sym_y,sym_texture}
-					currentMarkers[markerCount] = markerEntry --MarkerTAble = index,X,Y,Texture
-					markerCount = markerCount + 1
+					if sym_texture == textureDiscovered or sym_texture == textureCleared or sym_texture == textureInfested then
+						local markerEntry = {i,sym_x,sym_y,sym_texture}
+						currentMarkers[markerCount] = markerEntry --MarkerTAble = index,X,Y,Texture
+						markerCount = markerCount + 1
+						if Exterminator.isMarkerInCurrentBgrid(sym_x,sym_y) and sym_texture == textureCleared then
+							markerCountCleared = markerCountCleared + 1							
+						end
+					elseif sym_texture == textureGridCleared then
+						local markerBEntry = {i,sym_x,sym_y,sym_texture}
+						currentGridBMarkers[markerBcount] = markerBEntry --MarkerBTAble = index,X,Y,Texture
+						markerBcount = markerBcount + 1						
+					end
 				end
 			end
 		end		
 	end
+	currentGridBclearedCount = markerCountCleared
 	getNewMapMarkers = false
 end
 
 function Exterminator.refreshMapMarkers(player)
 	
-	local currentGridClearedCount = 0
 	local removeMarkers = {}
 	local removeMarkersCount = 1
 	local addMarkers = {}
@@ -376,8 +408,7 @@ function Exterminator.refreshMapMarkers(player)
 		local gY = vGrid[3]
 		local gHasZombies = vGrid[4]
 		local gBgrid = vGrid[5]
-		local markerExists = false
-		local next = next
+		local markerExists = false		
 		if currentMarkers == {} then
 			markerExists = false
 		else
@@ -391,9 +422,8 @@ function Exterminator.refreshMapMarkers(player)
 						--TODO consider ignoring marker 
 						markerExists = true;						
 						if gHasZombies then -- zone has zombies
-							if mTexture ~= textureInfested then
-								-- Queue marker for Deletion
-								print("refreshMapMarkers:TileIsNowInfest " .. mTexture)
+							if mTexture == textureCleared or mTexture == textureDiscovered then
+								-- Queue marker for Deletion								
 								removeMarkers[removeMarkersCount] = {mIndex,mX,mY}--RemoveMarkerTable = Index,X,Y
 								removeMarkersCount = removeMarkersCount + 1
 								--add new marker textureInfested
@@ -409,10 +439,7 @@ function Exterminator.refreshMapMarkers(player)
 								addMarkers[addMarkersCount] = {gX,gY,textureCleared} --AddMarkerTable = X,Y,Texture
 								addMarkersCount = addMarkersCount + 1								
 							end
-						end						
-						if gBgrid == currentGridB and mTexture == textureCleared then
-							currentGridClearedCount = currentGridClearedCount + 1 --Add total total cleared markers
-						end
+						end											
 					end
 				end
 			end	
@@ -427,7 +454,7 @@ function Exterminator.refreshMapMarkers(player)
 					--Create cleared marker
 					addMarkers[addMarkersCount] = {gX,gY,textureCleared} --AddMarkerTable = X,Y,Texture
 					addMarkersCount = addMarkersCount + 1
-					currentGridClearedCount = currentGridClearedCount + 1	
+					currentGridBclearedCount = currentGridBclearedCount + 1
 					else
 					--Create undiscovered marker
 					addMarkers[addMarkersCount] = {gX,gY,textureDiscovered} --AddMarkerTable = X,Y,Texture
@@ -435,14 +462,32 @@ function Exterminator.refreshMapMarkers(player)
 				end
 			end
 		end
-		currentGridBclearedCount = currentGridClearedCount
-		if currentGridClearedCount >= 9 then 
-			currentGridBcleared = true			
-			--TODO add a grid cleared marker
-		else
-			currentGridBcleared = false
-		end
 	end	
+	if currentGridBclearedCount >= currentGridBnodecount then 
+		if currentGridBcleared then
+			-- do nother currentGridBcleared is alreayd cleared no need to check maekrs
+			else
+				currentGridBcleared = true			
+				--add a grid cleared marker at the grid B location
+				addMarkers[addMarkersCount] = {currentGridBx,currentGridBy,textureGridCleared}
+				addMarkersCount = addMarkersCount + 1
+		end
+	else
+		currentGridBcleared = false
+		-- check if there are markers that match and delete them
+		if currentGridBMarkers then
+			for iBmark,vBmark in pairs(currentGridBMarkers) do
+				local vBmarkIndex = vBmark[1]
+				local vBmarkX = vBmark[2]
+				local vBmarkY = vBmark[3]
+				if vBmarkX == currentGridBx and vBmarkY == currentGridBy then
+					--set for Deletion
+					removeMarkers[removeMarkersCount] = {vBmarkIndex,vBmarkX,vBmarkY}--RemoveMarkerTable = Index,X,Y
+					removeMarkersCount = removeMarkersCount + 1
+				end
+			end
+		end
+	end
 	-- loop through the queue to add markers then remove markers
 	local symAPI = Exterminator.getSymAPI()	
 	if addMarkers then
@@ -478,19 +523,47 @@ end
 function Exterminator.updateGridVisible(playerX,playerY)
 	currentGrids = {}	
 	currentGridA = Exterminator.getGridRef('A',playerX,playerY)
-	currentGridB = Exterminator.getGridRef('B',playerX,playerY)	
+	currentGridB = Exterminator.getGridRef('B',playerX,playerY)
+	currentGridBx = Exterminator.getGridRef('Bx',playerX,playerY)	
+	currentGridBy = Exterminator.getGridRef('By',playerX,playerY)
+	currentGridBnodecount = Exterminator.getBGridValidPoints(currentGridA,currentGridB)	
 	currentGridC = Exterminator.getGridRef('C',playerX,playerY)
 	currentGridCx = Exterminator.getGridRef('Cx',playerX,playerY)	
 	currentGridCy = Exterminator.getGridRef('Cy',playerX,playerY)		
-	local gridRange = 2	
-	local gridCount = 1
+	local gridRange = 1	-- total distance from center to get grids
+	local gridCount = 1 -- used for writing the grid table	
 
-	--populate min max X yet for marker grabs
-	currentGridMinX = currentGridCx - ((gridCsize * gridRange) + 50)
-	currentGridMaxX = currentGridCx + ((gridCsize * gridRange) + 50)
-	currentGridMinY = currentGridCy - ((gridCsize * gridRange) + 50)
-	currentGridMaxY = currentGridCy + ((gridCsize * gridRange) + 50)
-
+	--populate min max X yet for marker grabs 
+	--TODO this needs to get the 5x5 grid for the b Square
+	local checkMinX = currentGridCx - ((gridCsize * gridRange) + 50)
+	local checkMaxX = currentGridCx + ((gridCsize * gridRange) + 50)
+	local checkMinY = currentGridCy - ((gridCsize * gridRange) + 50)
+	local checkMaxY = currentGridCy + ((gridCsize * gridRange) + 50)	
+	currentGridBMinX = currentGridBx - ((gridBsize/2) + 50)
+	currentGridBMaxX = currentGridBx + ((gridBsize/2) + 50)
+	currentGridBMinY = currentGridBy - ((gridBsize/2) + 50)
+	currentGridBMaxY = currentGridBy + ((gridBsize/2) + 50)
+	if checkMinX < currentGridBMinX then
+		currentGridMinX = checkMinX
+	else
+		currentGridMinX = currentGridBMinX
+	end
+	if checkMaxX > currentGridBMaxX then
+		currentGridMaxX = checkMaxX
+	else
+		currentGridMaxX = currentGridBMaxX
+	end
+	if checkMinY < currentGridBMinY then
+		currentGridMinY = checkMinY
+	else
+		currentGridMinY = currentGridBMinY
+	end
+	if checkMaxY > currentGridBMaxY then
+		currentGridMaxY = checkMaxY
+	else
+		currentGridMaxY = currentGridBMaxY
+	end
+	
 	for i=-gridRange,gridRange,1 do
 		--currentgrids[i+2] = {}
 		local iGridX = playerX + (i*gridCsize)		
@@ -514,11 +587,12 @@ function Exterminator.updateGridVisible(playerX,playerY)
 				end				
 				local gridWrite = {iGridC,iGridXfix,iGridYfix,hasZombies,iGridB}
 				--GridTable = GridRef,GridX,GridY,HasZombies,GridB
-				currentGrids[gridCount] = gridWrite			
-				gridCount = gridCount + 1
+				currentGrids[gridCount] = gridWrite	
+				gridCount = gridCount + 1 		
 			end
 		end
-	end	
+	end
+	currentGridCount = gridCount - 1 --DEBUG remove later	
 end
 
 function Exterminator.isZombieInGrid(gridX,gridY,zombX,zombY)	
@@ -532,23 +606,17 @@ end
 
 function Exterminator.getGridRef(gridType,gridX,gridY)
 	local coordSep = '_'
-	if gridType == 'A' then
-		local Ax = (Exterminator.RoundUpToInt((gridX/gridAsize),0)*gridAsize)-(gridAsize/2)
-		local Ay = (Exterminator.RoundUpToInt(((gridY-300)/gridAsize),0)*gridAsize)-(gridAsize/2) + 300 -- 300 offset on y grid
-		local Aref = 'A' .. Ax .. coordSep .. Ay
-		return Aref
-	end 
-	if gridType == 'B' then
-		local Bx = (Exterminator.RoundUpToInt((gridX/gridBsize),0)*gridBsize)-(gridBsize/2)
-		local By = (Exterminator.RoundUpToInt(((gridY-300)/gridBsize),0)*gridBsize) + 50 -- 300 offset on y grid
-		local Bref = 'B' .. Bx .. coordSep .. By
-		return Bref
-	end 
 	if gridType == 'C' then
 		local Cx = (Exterminator.RoundUpToInt((gridX/gridCsize),0)*gridCsize)-(gridCsize/2)
 		local Cy = (Exterminator.RoundUpToInt(((gridY)/gridCsize),0)*gridCsize)-(gridCsize/2) -- 300 offset on y grid
 		local Cref = Cx .. coordSep .. Cy
 		return Cref
+	end
+	if gridType == 'B' then
+		local Bx = (Exterminator.RoundUpToInt((gridX/gridBsize),0)*gridBsize)-(gridBsize/2)
+		local By = (Exterminator.RoundUpToInt(((gridY-300)/gridBsize),0)*gridBsize) + 50 -- 300 offset on y grid
+		local Bref = 'B' .. Bx .. coordSep .. By
+		return Bref
 	end
 	if gridType == 'Cx' then
 		local Cx = (Exterminator.RoundUpToInt((gridX/gridCsize),0)*gridCsize)-(gridCsize/2)		
@@ -557,7 +625,33 @@ function Exterminator.getGridRef(gridType,gridX,gridY)
 	if gridType == 'Cy' then		
 		local Cy = (Exterminator.RoundUpToInt(((gridY)/gridCsize),0)*gridCsize)-(gridCsize/2) -- 300 offset on y grid		
 		return Cy
-	end    
+	end
+	if gridType == 'Bx' then
+		local Bx = (Exterminator.RoundUpToInt((gridX/gridBsize),0)*gridBsize)-(gridBsize/2)		
+		return Bx
+	end
+	if gridType == 'By' then		
+		local By = (Exterminator.RoundUpToInt(((gridY-300)/gridBsize),0)*gridBsize) + 50 -- 300 offset on y grid		
+		return By
+	end	 	     
+	if gridType == 'A' then
+		local Ax = (Exterminator.RoundUpToInt((gridX/gridAsize),0)*gridAsize)-(gridAsize/2)
+		local Ay = (Exterminator.RoundUpToInt(((gridY-300)/gridAsize),0)*gridAsize)-(gridAsize/2) + 300 -- 300 offset on y grid
+		local Aref = 'A' .. Ax .. coordSep .. Ay
+		return Aref
+	end 
+end
+
+function Exterminator.getBGridValidPoints(gridA,gridB)
+	local validPoints = 99
+	if ExterminatorGrid[gridA][gridB] then		
+		validPoints = 0
+		for index,value in pairs(ExterminatorGrid[gridA][gridB]) do			
+			validPoints = validPoints + 1
+		end				
+	end
+	print("getBGridValidPoints:" .. gridA .. "." .. gridB .. ' - ' .. validPoints)
+	return validPoints
 end
 
 function Exterminator.RoundUpToInt(num)
@@ -599,11 +693,19 @@ function Exterminator.addMarker (symAPI,markerType,gridX,gridY)
 	
 	local newSymbol = symAPI:addTexture(markerType,gridX,gridY)
 	if newSymbol then
-		newSymbol:setAnchor(0.5, 0.5)
-		newSymbol:setScale(1) --DEBUG set scale to 0.01 so it cant be deleted by player
-		newSymbol:setRGBA(51, 255, 48, 200)
-		--TODO only beep if full grid is cleared rather than jsut one area
-		Exterminator.ClearedAreaBeep() --play sound for area cleared		
+		if markerType == textureGridCleared then
+			newSymbol:setAnchor(0.5, 0.5)
+			newSymbol:setScale(10) --these ones actually show up
+			newSymbol:setRGBA(51, 255, 48, 200)
+			--TODO only beep if full grid is cleared rather than jsut one area
+			Exterminator.ClearedAreaBeep() --play sound for area cleared		
+		else
+			-- createa a regualr marker
+			newSymbol:setAnchor(0.5, 0.5)
+			newSymbol:setScale(1) --DEBUG set scale to 0.01 so it cant be deleted by player easily
+			newSymbol:setRGBA(51, 255, 48, 200)
+			--TODO only beep if full grid is cleared rather than jsut one area			
+		end
 	else
 		print('Exterminator.addClearedMarker:Failed to create marker')
 	end

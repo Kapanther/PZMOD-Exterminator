@@ -1,3 +1,5 @@
+--These routines where used for getting data from the map and generating the grid squares 
+
 local doZombieDebugScan = true -- set to true to run giant map scan
 local lastDebugScan = -1
 local lastDebugScanInterval = 2 -- time in ms to do debugscan
@@ -11,7 +13,7 @@ local debugScanCurrentX = debugScanStartX
 local debugScanCurrentY = debugScanStartY
 local debugScanMoveIntervalX = 100
 local debugScanMoveIntervalY = 100
-local debugFileOutputPath = 'TileDataScan.txt'
+local debugFileOutputPath = 'TileDataScan.txt' -- wrties into the c:\users\<username>\zomboid\lua folder (you can write anywhere else)
 
 function Exterminator.ZombieDebugScan()
 	if lastDebugScan < 0 then
