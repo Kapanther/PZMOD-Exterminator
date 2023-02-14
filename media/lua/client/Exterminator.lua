@@ -99,8 +99,9 @@ function Exterminator.Initialize()
 	-- check if we are the client and register for server commands
 	if isClient() then
 	Events.OnServerCommand.Add(Exterminator.onServerCommand)-- Client receiving message from server	
-	--TODO do initial sync of cleared zones and markers before starting
-	Exterminator.requestMarkerSync()
+	
+	--TODO do initial sync of cleared zones and markers before starting	
+	print ("EXM:Initialize:onClientSection")
 	end
 
 	--add zombie scanner check to equip Primary or secondary
@@ -373,6 +374,31 @@ function Exterminator.isMarkerInCurrentBgrid(testX,testY)
 	end
 	return false
 
+end
+
+function Exterminator.getMarkersAtExtents(minX,maxX,minY,maxY)
+	--cycle through each of the current map markers
+	local symAPI = Exterminator.getSymAPI()
+	local cnt = symAPI:getSymbolCount() 
+	local markerCount = 1 
+	local recievedMarkers = {} -- need to reset the markers
+  
+	--TODO is this getting the markers correctly? i think the count might be wrong
+	for i=0,cnt-1,1 do 
+		local sym = symAPI:getSymbolByIndex(i)
+		local sym_x = sym:getWorldX();
+		if sym_x <= maxX and sym_x >= minX then
+			local sym_y = sym:getWorldY();
+			if sym_y <= maxY and sym_y >= minY then
+				--add symbol data to the monitored markers
+				local sym_texture = sym:getSymbolID();
+				local markerEntry = {i,sym_x,sym_y,sym_texture}
+				recievedMarkers[markerCount] = markerEntry --MarkerTAble = index,X,Y,Texture
+				markerCount = markerCount + 1
+			end
+		end
+	end
+	return recievedMarkers
 end
 
 function Exterminator.getMapMarkers(minX,maxX,minY,maxY)
@@ -768,9 +794,15 @@ function Exterminator.pairsByKeys (t, f)
     return iter
 end
 
-function Exterminator.requestMarkerSync()	
-	local username = getPlayer():getUsername();	
-	sendClientCommand(Exterminator.MOD_ID,'requestMarkerSync',{username})
+function Exterminator.OnConnected()
+	print("EXM:requestMarkerSync:")
+	local username = "Username"		
+	sendClientCommand(Exterminator.MOD_ID,'requestMarkerSync',username)
+	
+end
+
+function OnConnectionStateChanged(state, reason)
+	print ("EXM:OnConnectionStateChanged: State: " .. state .. ' Reason: ' .. reason)
 end
 
 function Exterminator.sortMarkers (markersToSort)
@@ -781,6 +813,15 @@ function Exterminator.sortMarkers (markersToSort)
 		  count = count + 1
 	end
 	return sorted
+end
+
+function Exterminator.convertGridKeyToXY (gridKey)
+	
+	gridKey = gridKey:gsub("B", "")	
+	gridKey = gridKey:gsub("C", "")
+	gridKey = gridKey .. "_"
+	gridKey = gridKey:gmatch("(.-)_")
+	return
 end
 
 function Exterminator.sendMarkerSync()
@@ -795,7 +836,7 @@ function Exterminator.recieveMarkerUpdates (markersToAdd,markerExtents)
 	local symAPI = Exterminator.getSymAPI()
 	
     -- get markers in extents only then cycle over them.
-	local markersToCheck = Exterminator.getAllMarkersForSync()
+	local markersToCheck = Exterminator.getMarkersAtExtents(markerExtents[1],markerExtents[2],markerExtents[3],markerExtents[4])
 
 	--AddMarkerTable = X,Y,Texture	
 	if markersToAdd then
@@ -858,10 +899,84 @@ function Exterminator.onServerCommand(module, command, args)
 	end
 
 	if command == 'requestMarkerSync' then
-		
+		Exterminator.sendMarkerSync()
+	end
+
+	if command == 'sendDiffSync' then
+		Exterminator.recieveDiffSync(args[1])
+	end
+
+	if command == 'serverDebug' then
+		print (args[1])
+	end
+end
+
+function Exterminator.recieveDiffSync (markersToAdd)
+
+	-- get current markers on map and count
+	local symAPI = Exterminator.getSymAPI()
+	
+    -- get markers in extents only then cycle over them.
+	local markersToCheck = Exterminator.getAllMarkersForSync()
+
+	--AddMarkerTable = X,Y,Texture	
+	if markersToAdd then
+		local prevMarkerIndex = 99999		
+		for iNewMaker,vNewMarker in pairs(markersToAdd) do
+			local markerExists = false
+			local gridKey = Exterminator.convertGridKeyToXY(vNewMarker[2])
+			local mTexture = vNewMarker[3]
+			local mX = gridKey[1]
+			local mY = gridKey[2]
+			for iOldMarker,vOldMarker in pairs(markersToCheck) do
+				local oIndex = vOldMarker[1]				
+				local oTexture = vOldMarker[4]
+				local oX = vOldMarker[2]
+				local oY = vOldMarker[3]
+				--checkX
+				if oX == mX then
+					if oY == mY then
+						if mTexture == textureGridCleared  then
+							--NEW MARKER IS A big SQAURE
+							if oTexture == mTexture then
+								markerExists = true								
+							end
+						elseif oTexture ~= textureGridCleared then
+							markerExists = true						
+							--nEW MARKER IS A LITTLE CELL
+							if oTexture == mTexture then								
+								--marker is the same do nothing
+								else
+								--Rremove the old marker
+								if prevMarkerIndex < oIndex then		
+									symAPI:removeSymbolByIndex((oIndex-1))
+									prevMarkerIndex = oIndex							
+									else
+									symAPI:removeSymbolByIndex(oIndex)
+									prevMarkerIndex = oIndex							
+								end
+								--add the marker
+								Exterminator.addMarker(symAPI,mTexture,mX,mY)
+								print("recieveMarkerUpdates:ADD X:" .. mX .. "Y:" .. mY .. " Tex:" .. mTexture)	
+							end
+						end
+
+
+						
+					end
+				end
+			end
+			if markerExists == false then
+				Exterminator.addMarker(symAPI,mTexture,mX,mY)
+				print("recieveMarkerUpdates:ADD X:" .. mX .. "Y:" .. mY .. " Tex:" .. mTexture)			
+			end
+		end
+		getNewMapMarkers = true
 	end
 end
 
 --required to initialise the mod
+Events.OnConnected.Add(Exterminator.OnConnected)
+--Events.OnConnectionStateChanged.Add(OnConnectionStateChanged)
 Events.OnGameStart.Add(Exterminator.Initialize)
 

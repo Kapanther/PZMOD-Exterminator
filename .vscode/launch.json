@@ -10,7 +10,7 @@
             "type": "lua",
             "request": "launch",
             "name": "Debug",
-            "program": "${workspaceFolder}/media/lua/server/ExterminatorGrid.lua"
+            "program": "${workspaceFolder}/media/lua/client/SomeGridTest.lua"
             //"program": "${workspaceFolder}/etc/Array Code.lua"
         }
     ]

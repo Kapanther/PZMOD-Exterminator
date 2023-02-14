@@ -85,7 +85,12 @@ function difference(Ga, Gb)
 		pairsCount = pairsCount + 1
 		end
 	end
-	bGrid = Gb   
+	for iB,VN in pairs(Gb) do
+		local gridB = vB[1]
+		local clearedB = vB[2]
+		pairsToUpdate[pairsCount] = {gridB,clearedB}
+		pairsCount = pairsCount + 1
+	end 
     return pairsToUpdate
 end
 

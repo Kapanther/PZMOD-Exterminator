@@ -1,4 +1,5 @@
 local server_config = {};
+local EXMmodule = "Exterminator"
 local syncTimer = -1
 local syncInterval = 2000
 local playerSyncRequests = 0
@@ -14,7 +15,7 @@ end
 
 local function onClientCommand(module, command, player, args)
     --TODO this is hard  coded right now consider linking the mod ID to to it
-    if module ~= "Exterminator" then
+    if module ~= EXMmodule then
         return
     end
 
@@ -24,6 +25,8 @@ local function onClientCommand(module, command, player, args)
 
     if command == 'requestMarkerSync' then
         --pause all the clients while the marker sync happens
+        local debugMSG = "EXMServer:Request to sync Recieved by " .. args[1]
+        sendServerCommand(module, 'serverDebug', debugMSG) --DEBUGONLY
         PauseAllClients()
         --TODO consider sending a message to let players know the game is sycing markers 
 
@@ -31,11 +34,13 @@ local function onClientCommand(module, command, player, args)
         local playerList = getPlayers()
         local playerCount = getPlayers():size()
 
-        if playerCount > 1 then        
+        if playerCount > 1 then
+            local debugMSG2 = "EXMServer:Sync Player Count > 1 PC= " .. playerCount
+            sendServerCommand(module, 'serverDebug', debugMSG2) --DEBUGONLY        
             sendServerCommand(module, 'requestMarkerSync', args)
             playerSyncRequests = playerCount
         else
-            restartGame()
+            unpauseGame()
         end
     end
 
@@ -48,6 +53,7 @@ local function onClientCommand(module, command, player, args)
 
         if playerSyncRequestsRecieved == playerSyncRequests then
             doMarkerSyncChecks()            
+            unpauseGame()
         end
     end
 end
@@ -63,6 +69,14 @@ function doMarkerSyncChecks()
             -- we are now on the second player lets start the comparison
             local otherMarkers = v[2]
             differenceGrid = difference(currentMarkers,otherMarkers)
+            --send the differend markers
+            sendServerCommand(EXMmodule,'sendDiffSync',differenceGrid)
+            --update current makrers
+            for k,v in pairs (differenceGrid) do
+                local grid = v[1]
+                local cleared = v[2]            
+                currentMarkers[grid] = cleared
+            end
 
         end
     end
@@ -70,14 +84,18 @@ end
 
 function unpauseGame()
     -- unpause the game
-    UnPauseAllClients()
     playerSyncRequests = 0
     playerSyncRequestsRecieved = 0
+    currentPlayer = {}
+    currentMarkers = {}
+    markerTables = {}
+    UnPauseAllClients()    
 end
 
 function difference(Ga, Gb)
     local pairsToUpdate = {}
-	local pairsCount = 1	
+	local pairsCount = 1
+    local countA = 1    
     for iA,vA in pairs(Ga) do
 		local gridA = vA[1]
 		local markerFound = false
@@ -96,16 +114,16 @@ function difference(Ga, Gb)
 				elseif clearedA == "Cleared" or clearedB == "Cleared" then
 					--they dont match but one is cleared
 					pairsToUpdate[pairsCount] = {gridA,"Cleared"}
-					pairsCount = pairsCount + 1					
-					--TODO remove the Bgrid line for performance
+					pairsCount = pairsCount + 1
+                    table.remove(currentMarkers,countA)	--remove countA marker and readdit after sync			
 					elseif clearedA == "Infested" or clearedB == "Infested" then
 					pairsToUpdate[pairsCount] = {gridA,"Infested"}
 					pairsCount = pairsCount + 1
-					--TODO remove the Bgrid line for performance
+                    table.remove(currentMarkers,countA)	--remove countA marker and readdit after sync	
 					else
 					pairsToUpdate[pairsCount] = {gridA,"Discovered"}
 					pairsCount = pairsCount + 1
-					--TODO remove the Bgrid line for performance
+                    table.remove(currentMarkers,countA)	--remove countA marker and readdit after sync	
 				end				
 			end
 			countB = countB + 1
@@ -115,12 +133,19 @@ function difference(Ga, Gb)
 		pairsToUpdate[pairsCount] = {gridA,vA[2]}
 		pairsCount = pairsCount + 1
 		end
+        countA = countA + 1
 	end
-	local bGrid = Gb   
-    return {pairsToUpdate,bGrid}
+    --TODO This is not splitting the grid differences by the two players we are jsut sending all the diffs and letting the clients resolve the differences... A Bit yucky.. but im lazy
+	for iB,VB in pairs(Gb) do
+        local gridB = vB[1]
+        local clearedB = vB[2]
+        pairsToUpdate[pairsCount] = {gridB,clearedB}
+        pairsCount = pairsCount + 1
+    end   
+    return pairsToUpdate
 end
 
 if isServer() then
     Events.OnServerStarted.Add(onServerStart)
-    Events.OnClientCommand.Add(onClientCommand) --// a client sends to server
+    Events.OnClientCommand.Add(onClientCommand) --// a client sends to server    
 end
