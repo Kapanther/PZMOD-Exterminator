@@ -26,7 +26,7 @@ local function onClientCommand(module, command, player, args)
     if command == 'requestMarkerSync' then
         --pause all the clients while the marker sync happens
         local debugMSG = "EXMServer:Request to sync Recieved by " .. args[1]
-        sendServerCommand(module, 'serverDebug', debugMSG) --DEBUGONLY
+        sendServerCommand(module, 'serverDebug', {debugMSG}) --DEBUGONLY
         PauseAllClients()
         --TODO consider sending a message to let players know the game is sycing markers 
 
@@ -36,7 +36,7 @@ local function onClientCommand(module, command, player, args)
 
         if playerCount > 1 then
             local debugMSG2 = "EXMServer:Sync Player Count > 1 PC= " .. playerCount
-            sendServerCommand(module, 'serverDebug', debugMSG2) --DEBUGONLY        
+            sendServerCommand(module, 'serverDebug', {debugMSG2}) --DEBUGONLY        
             sendServerCommand(module, 'requestMarkerSync', args)
             playerSyncRequests = playerCount
         else

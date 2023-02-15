@@ -448,7 +448,7 @@ function Exterminator.refreshMapMarkers(player)
 	local removeMarkers = {}
 	local removeMarkersCount = 1
 	local addMarkers = {}
-	local addMarkersCount = 1
+	local addMarkersCount = 1	
 
 	--cycle through each of the current map markers against the grids
 	--GridTable = GridRef,GridX,GridY,HasZombies,GridB
@@ -482,7 +482,7 @@ function Exterminator.refreshMapMarkers(player)
 								addMarkersCount = addMarkersCount + 1	
 							end							
 							else
-							if gCgrid == currentGridC and mTexture ~= textureCleared then
+							if gCgrid == currentGridC and (mTexture == textureDiscovered or mTexture == textureInfested) then
 								-- Queue marker for Deletion
 								removeMarkers[removeMarkersCount] = {mIndex,mX,mY}--RemoveMarkerTable = Index,X,Y
 								removeMarkersCount = removeMarkersCount + 1
@@ -541,11 +541,11 @@ function Exterminator.refreshMapMarkers(player)
 	end
 	-- loop through the queue to add markers then remove markers
 	local symAPI = Exterminator.getSymAPI()	
-	if addMarkers then
+	if addMarkers then 				
 		for iNewMaker,vNewMarker in pairs(addMarkers) do
-			Exterminator.addMarker(symAPI,vNewMarker[3],vNewMarker[1],vNewMarker[2])
-		end
-		getNewMapMarkers = true
+			Exterminator.addMarker(symAPI,vNewMarker[3],vNewMarker[1],vNewMarker[2])			
+			getNewMapMarkers = true
+		end			
 	end
 	if removeMarkers then
 		local prevMarkerIndex = 99999
@@ -564,6 +564,7 @@ function Exterminator.refreshMapMarkers(player)
 	-- send marker changes over network
 	if isClient() then
 		if getNewMapMarkers then
+			print("refreshMapMarkers: " .. tostring(getNewMapMarkers))
 			local username = player:getUsername()
 			local markerExtents = {currentGridMinX,currentGridMaxX,currentGridMinY,currentGridMaxY}
 			sendClientCommand(Exterminator.MOD_ID,'sendMarkerUpdates',{addMarkers,markerExtents,username}) 		 
@@ -794,15 +795,13 @@ function Exterminator.pairsByKeys (t, f)
     return iter
 end
 
-function Exterminator.OnConnected()
-	print("EXM:requestMarkerSync:")
-	local username = "Username"		
-	sendClientCommand(Exterminator.MOD_ID,'requestMarkerSync',username)
-	
-end
-
-function OnConnectionStateChanged(state, reason)
-	print ("EXM:OnConnectionStateChanged: State: " .. state .. ' Reason: ' .. reason)
+function Exterminator.OnConnectedMarkerSyncRequest()
+	Events.OnPlayerMove.Remove(Exterminator.OnConnectedMarkerSyncRequest)
+	if isClient() then
+		print("EXM:requestMarkerSync:")	
+		local username = "Username"		
+		sendClientCommand(Exterminator.MOD_ID,'requestMarkerSync',{username})
+	end
 end
 
 function Exterminator.sortMarkers (markersToSort)
@@ -960,9 +959,6 @@ function Exterminator.recieveDiffSync (markersToAdd)
 								print("recieveMarkerUpdates:ADD X:" .. mX .. "Y:" .. mY .. " Tex:" .. mTexture)	
 							end
 						end
-
-
-						
 					end
 				end
 			end
@@ -975,8 +971,20 @@ function Exterminator.recieveDiffSync (markersToAdd)
 	end
 end
 
+function OnCustomUIKeyReleased(key)	
+	--73 = KEY_NUMPAD9 
+	if key == 73 then
+		print("OnCustomUIKeyReleased SUCCESS:" .. tostring(key))
+		Exterminator.OnConnectedMarkerSyncRequest()	
+	end
+end
+
 --required to initialise the mod
-Events.OnConnected.Add(Exterminator.OnConnected)
---Events.OnConnectionStateChanged.Add(OnConnectionStateChanged)
 Events.OnGameStart.Add(Exterminator.Initialize)
+
+-- does an initial syncronise after the game is loaded when the player first moves
+Events.OnPlayerMove.Add(Exterminator.OnConnectedMarkerSyncRequest)
+
+--debug only to test various shit..
+Events.OnCustomUIKeyReleased.Add(OnCustomUIKeyReleased)
 
