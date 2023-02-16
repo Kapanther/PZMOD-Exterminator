@@ -565,7 +565,7 @@ function Exterminator.refreshMapMarkers(player)
 	if isClient() then
 		if getNewMapMarkers then
 			print("refreshMapMarkers: " .. tostring(getNewMapMarkers))
-			local username = player:getUsername()
+			local username = getPlayer():getUsername()
 			local markerExtents = {currentGridMinX,currentGridMaxX,currentGridMinY,currentGridMaxY}
 			sendClientCommand(Exterminator.MOD_ID,'sendMarkerUpdates',{addMarkers,markerExtents,username}) 		 
 		end
@@ -764,14 +764,15 @@ function Exterminator.getAllMarkersForSync()
 		local sym_x = sym:getWorldX();
 		local sym_y = sym:getWorldY();		
 		local sym_texture = sym:getSymbolID();
-		if sym_texture == textureCleared or sym_texture == textureDiscovered or sym_texture == textureInfested then
+		local markerEntry = {}
+		if sym_texture == textureCleared or sym_texture == textureDiscovered or sym_texture == textureInfested then			
 			local thisGridRef = "C" .. Exterminator.getGridRef('C',sym_x,sym_y) --zTODO i have added a C in front of the string instead of changing the grid... it only happens on initial sync
-			local markerEntry = {thisGridRef= sym_texture}
+			markerEntry[thisGridRef] = sym_texture
 			allMarkers[markerCount] = markerEntry --MarkerTAble = index,X,Y,Texture
 			markerCount = markerCount + 1
 		elseif sym_texture == textureGridCleared then
 			local thisGridBRef = Exterminator.getGridRef('B',sym_x,sym_y)
-			local markerEntry = {thisGridBRef = sym_texture}
+			markerEntry[thisGridBRef] = sym_texture
 			allMarkers[markerCount] = markerEntry --MarkerTAble = index,X,Y,Texture
 			markerCount = markerCount + 1
 		end
@@ -798,8 +799,7 @@ end
 function Exterminator.OnConnectedMarkerSyncRequest()
 	Events.OnPlayerMove.Remove(Exterminator.OnConnectedMarkerSyncRequest)
 	if isClient() then
-		print("EXM:requestMarkerSync:")	
-		local username = "Username"		
+		local username = getPlayer():getUsername()
 		sendClientCommand(Exterminator.MOD_ID,'requestMarkerSync',{username})
 	end
 end
@@ -814,18 +814,29 @@ function Exterminator.sortMarkers (markersToSort)
 	return sorted
 end
 
-function Exterminator.convertGridKeyToXY (gridKey)
-	
+function Exterminator.convertGridKeyToXY (gridKey)	
 	gridKey = gridKey:gsub("B", "")	
 	gridKey = gridKey:gsub("C", "")
-	gridKey = gridKey .. "_"
-	gridKey = gridKey:gmatch("(.-)_")
-	return
+	gridKey = gridKey .. "_";
+    gridKey = Exterminator.splitOnChar(gridKey,"_")
+    return gridKey
+end
+
+function Exterminator.splitOnChar (inputstr, sep)
+	if sep == nil then
+			sep = "%s"
+	end
+	local t={}
+	for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+			table.insert(t, str)
+	end
+	return t
 end
 
 function Exterminator.sendMarkerSync()
 	local username = getPlayer():getUsername();	
 	local currentMarkers = Exterminator.getAllMarkersForSync()
+	print("EXM:sendMarkerSync:")	
 	sendClientCommand(Exterminator.MOD_ID,'sendMarkerSync',{username,currentMarkers})
 end
 
@@ -888,7 +899,7 @@ function Exterminator.onServerCommand(module, command, args)
 	end
 
 	-- debug
-	print( ('Exterminator.onServerCommand Command= "%s"'):format(command) )
+	--print( ('Exterminator.onServerCommand Command= "%s"'):format(command) )
 
 	--update markers from network
 	if command == 'sendMarkerUpdates' then		
@@ -921,12 +932,13 @@ function Exterminator.recieveDiffSync (markersToAdd)
 	--AddMarkerTable = X,Y,Texture	
 	if markersToAdd then
 		local prevMarkerIndex = 99999		
-		for iNewMaker,vNewMarker in pairs(markersToAdd) do
+		for iNewMarker,vNewMarker in pairs(markersToAdd) do
 			local markerExists = false
-			local gridKey = Exterminator.convertGridKeyToXY(vNewMarker[2])
-			local mTexture = vNewMarker[3]
-			local mX = gridKey[1]
-			local mY = gridKey[2]
+			local newMarkerData = vNewMarker[2]
+			local gridKey = Exterminator.convertGridKeyToXY(iNewMarker)
+			local mTexture = vNewMarker
+			local mX = tonumber(gridKey[1])
+			local mY = tonumber(gridKey[2])
 			for iOldMarker,vOldMarker in pairs(markersToCheck) do
 				local oIndex = vOldMarker[1]				
 				local oTexture = vOldMarker[4]

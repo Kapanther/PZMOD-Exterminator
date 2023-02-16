@@ -9,11 +9,11 @@ local currentPlayer
 local currentMarkers = {}
 
 --TODO server config
-local function onServerStart() 
+function onServerStart() 
     
 end
 
-local function onClientCommand(module, command, player, args)
+function onClientCommand(module, command, player, args)
     --TODO this is hard  coded right now consider linking the mod ID to to it
     if module ~= EXMmodule then
         return
@@ -25,14 +25,12 @@ local function onClientCommand(module, command, player, args)
 
     if command == 'requestMarkerSync' then
         --pause all the clients while the marker sync happens
-        local debugMSG = "EXMServer:Request to sync Recieved by " .. args[1]
-        sendServerCommand(module, 'serverDebug', {debugMSG}) --DEBUGONLY
-        PauseAllClients()
+        
+        --PauseAllClients()
         --TODO consider sending a message to let players know the game is sycing markers 
 
-        -- request the player markers
-        local playerList = getPlayers()
-        local playerCount = getPlayers():size()
+        -- request the player markers        
+        local playerCount =  getOnlinePlayers():size();    
 
         if playerCount > 1 then
             local debugMSG2 = "EXMServer:Sync Player Count > 1 PC= " .. playerCount
@@ -46,22 +44,34 @@ local function onClientCommand(module, command, player, args)
 
     if command == 'sendMarkerSync' then        
         playerSyncRequestsRecieved = playerSyncRequestsRecieved + 1
+        local debugMSG = "EXMServer:sendMarkerSync sync Recieved by PC=".. playerSyncRequestsRecieved .. '/' .. playerSyncRequests .. ' from ' .. args[1]
+        sendServerCommand(module, 'serverDebug', {debugMSG}) --DEBUGONLY
 
         -- add the data to memory on the server
-        local playername =  args[1]
+        local playername =  args[1];
         markerTables[playerSyncRequestsRecieved] = {playername,args[2]}
 
-        if playerSyncRequestsRecieved == playerSyncRequests then
-            doMarkerSyncChecks()            
+        if playerSyncRequestsRecieved >= playerSyncRequests then
+            local debugMSG2 = "EXMServer:sendMarkerSync:readToSyNC sync Recieved by PC=".. playerSyncRequestsRecieved .. '/' .. playerSyncRequests .. ' from ' .. args[1];
+            sendServerCommand(module, 'serverDebug', {debugMSG2}) --DEBUGONLY
+            doMarkerSyncChecks()
+            local debugMSG3 = 'EXMServer:aboutToUnpauseGame ' .. args[1];
+            sendServerCommand(module, 'serverDebug', {debugMSG3}) --DEBUGONLY            
             unpauseGame()
         end
     end
 end
 
 function doMarkerSyncChecks()
+    --local debugMSG3 = "EXMServer:doMarkerSyncChecks"
+    --print(debugMSG3)
+    --sendServerCommand(EXMmodule, 'serverDebug', {debugMSG3}) --DEBUGONLY
     for i,v in pairs(markerTables) do
         local differenceGrid = {}
-        if currentMarkers == {} then
+        if isTableEmpty(currentMarkers) then            
+            local debugMSG5 = "EXMServer:doMarkerSyncChecks:currentMarkers" .. v[1]
+            print(debugMSG5)
+            sendServerCommand(EXMmodule, 'serverDebug', {debugMSG5}) --DEBUGONLY
             -- add the first markers to base grid to compare
             currentPlayer = v[1]
             currentMarkers = v[2]            
@@ -70,13 +80,19 @@ function doMarkerSyncChecks()
             local otherMarkers = v[2]
             differenceGrid = difference(currentMarkers,otherMarkers)
             --send the differend markers
+            local debugMSG6 = "EXMServer:doMarkerSyncChecks:sendDiffSync" .. v[1]
+            print(debugMSG6)
+            sendServerCommand(EXMmodule, 'serverDebug', {debugMSG6}) --DEBUGONLY
+            if isTableEmpty(differenceGrid) then else
             sendServerCommand(EXMmodule,'sendDiffSync',differenceGrid)
-            --update current makrers
-            for k,v in pairs (differenceGrid) do
+             --update current makrers
+                for k,v in pairs (differenceGrid) do
                 local grid = v[1]
                 local cleared = v[2]            
                 currentMarkers[grid] = cleared
+                end
             end
+           
 
         end
     end
@@ -89,7 +105,7 @@ function unpauseGame()
     currentPlayer = {}
     currentMarkers = {}
     markerTables = {}
-    UnPauseAllClients()    
+    --UnPauseAllClients()    
 end
 
 function difference(Ga, Gb)
@@ -113,15 +129,15 @@ function difference(Ga, Gb)
 				--Do nothing there the same
 				elseif clearedA == "Cleared" or clearedB == "Cleared" then
 					--they dont match but one is cleared
-					pairsToUpdate[pairsCount] = {gridA,"Cleared"}
+					pairsToUpdate[gridA] = "Cleared"
 					pairsCount = pairsCount + 1
                     table.remove(currentMarkers,countA)	--remove countA marker and readdit after sync			
 					elseif clearedA == "Infested" or clearedB == "Infested" then
-					pairsToUpdate[pairsCount] = {gridA,"Infested"}
+					pairsToUpdate[gridA] = "Infested"
 					pairsCount = pairsCount + 1
                     table.remove(currentMarkers,countA)	--remove countA marker and readdit after sync	
 					else
-					pairsToUpdate[pairsCount] = {gridA,"Discovered"}
+					pairsToUpdate[gridA] = "Discovered"
 					pairsCount = pairsCount + 1
                     table.remove(currentMarkers,countA)	--remove countA marker and readdit after sync	
 				end				
@@ -130,7 +146,7 @@ function difference(Ga, Gb)
 		end
 		if markerFound == false then
 		--add markers it wasnt found
-		pairsToUpdate[pairsCount] = {gridA,vA[2]}
+		pairsToUpdate[gridA] = vA[2]
 		pairsCount = pairsCount + 1
 		end
         countA = countA + 1
@@ -139,10 +155,17 @@ function difference(Ga, Gb)
 	for iB,VB in pairs(Gb) do
         local gridB = vB[1]
         local clearedB = vB[2]
-        pairsToUpdate[pairsCount] = {gridB,clearedB}
+        pairsToUpdate[gridB] = clearedB
         pairsCount = pairsCount + 1
     end   
     return pairsToUpdate
+end
+
+function isTableEmpty(t)
+    for _, _ in pairs(t) do
+        return false
+      end
+    return true
 end
 
 if isServer() then

@@ -1,7 +1,7 @@
 # Exterminator - Project Zomboid Mod
 ## Todo
-- Check recipes for MK1/MK2 Scanner and SEcondary Hand Logic
-- Add Total Cleared Percentage approxmately 3200 dots to win!
+- Check recipes for MK1/MK2 Scanner
+- Add Scanner attachment for helmet
 - Add prevent respawns on zombies 
 - Add new spawn location - city escape. Remove other spawn location options.
 - Check GRID B poitns are been shared over network
