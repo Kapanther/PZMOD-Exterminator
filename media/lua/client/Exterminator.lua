@@ -727,6 +727,7 @@ end
 
 function Exterminator.addMarker (symAPI,markerType,gridX,gridY)	
 	
+	print("Exterminator.addMarker SYM:" .. markerType .. ' GX=' .. gridX .. ' GY=' .. gridY)
 	local newSymbol = symAPI:addTexture(markerType,gridX,gridY)
 	if newSymbol then
 		if markerType == textureGridCleared then
@@ -767,19 +768,19 @@ function Exterminator.getAllMarkersForSync()
 		local markerEntry = {}
 		if sym_texture == textureCleared or sym_texture == textureDiscovered or sym_texture == textureInfested then			
 			local thisGridRef = "C" .. Exterminator.getGridRef('C',sym_x,sym_y) --zTODO i have added a C in front of the string instead of changing the grid... it only happens on initial sync
-			markerEntry[thisGridRef] = sym_texture
-			allMarkers[markerCount] = markerEntry --MarkerTAble = index,X,Y,Texture
+			allMarkers[thisGridRef] = sym_texture
+			--allMarkers[markerCount] = markerEntry --MarkerTAble = index,X,Y,Texture
 			markerCount = markerCount + 1
 		elseif sym_texture == textureGridCleared then
 			local thisGridBRef = Exterminator.getGridRef('B',sym_x,sym_y)
-			markerEntry[thisGridBRef] = sym_texture
-			allMarkers[markerCount] = markerEntry --MarkerTAble = index,X,Y,Texture
+			allMarkers[thisGridBRef] = sym_texture
+			--allMarkers[markerCount] = markerEntry --MarkerTAble = index,X,Y,Texture
 			markerCount = markerCount + 1
 		end
 	end
 
-	local sortedMarkers = Exterminator.sortMarkers(allMarkers)
-	return sortedMarkers
+	--local sortedMarkers = Exterminator.sortMarkers(allMarkers) --TODO consider sorting the markers to improve speed of iteration on sync
+	return allMarkers
 end
 
 function Exterminator.pairsByKeys (t, f)
@@ -804,6 +805,7 @@ function Exterminator.OnConnectedMarkerSyncRequest()
 	end
 end
 
+-- TODO -- this will need to not return the number somehow everntally
 function Exterminator.sortMarkers (markersToSort)
 	local sorted = {}
 	local count = 1
@@ -833,11 +835,19 @@ function Exterminator.splitOnChar (inputstr, sep)
 	return t
 end
 
+function Exterminator.getTableSize(T)
+	local count = 0
+	for _ in pairs(T) do count = count + 1 end
+	return count
+  end
+
 function Exterminator.sendMarkerSync()
 	local username = getPlayer():getUsername();	
-	local currentMarkers = Exterminator.getAllMarkersForSync()
-	print("EXM:sendMarkerSync:")	
-	sendClientCommand(Exterminator.MOD_ID,'sendMarkerSync',{username,currentMarkers})
+	local markersForSync = Exterminator.getAllMarkersForSync()
+	local markerCount = Exterminator.getTableSize(markersForSync)
+	--Exterminator.saveQuick(markersForSync,"ClientMarkers.lua","INITIALSEND") --DEBUG
+	--print("EXM:sendMarkerSync: Markers Sent = " .. markerCount) --DEBUG	
+	sendClientCommand(Exterminator.MOD_ID,'sendMarkerSync',{username,markersForSync})
 end
 
 function Exterminator.recieveMarkerUpdates (markersToAdd,markerExtents)
@@ -878,14 +888,14 @@ function Exterminator.recieveMarkerUpdates (markersToAdd,markerExtents)
 							end
 							--add the marker
 							Exterminator.addMarker(symAPI,mTexture,mX,mY)
-							print("recieveMarkerUpdates:ADD X:" .. mX .. "Y:" .. mY .. " Tex:" .. mTexture)	
+							--print("recieveMarkerUpdates:ADD X:" .. mX .. "Y:" .. mY .. " Tex:" .. mTexture) --DEBUG	
 						end
 					end
 				end
 			end
 			if markerExists == false then
 				Exterminator.addMarker(symAPI,mTexture,mX,mY)
-				print("recieveMarkerUpdates:ADD X:" .. mX .. "Y:" .. mY .. " Tex:" .. mTexture)			
+				-- print("recieveMarkerUpdates:ADD X:" .. mX .. "Y:" .. mY .. " Tex:" .. mTexture)		--DEBUG		
 			end
 		end
 		getNewMapMarkers = true
@@ -913,7 +923,7 @@ function Exterminator.onServerCommand(module, command, args)
 	end
 
 	if command == 'sendDiffSync' then
-		Exterminator.recieveDiffSync(args[1])
+		Exterminator.recieveDiffSync(args)		
 	end
 
 	if command == 'serverDebug' then
@@ -928,55 +938,51 @@ function Exterminator.recieveDiffSync (markersToAdd)
 	
     -- get markers in extents only then cycle over them.
 	local markersToCheck = Exterminator.getAllMarkersForSync()
+	--Exterminator.saveQuickOnRecieve(markersToAdd,"ClientMarkers.lua","RECEIVE")--DEBUG	
 
 	--AddMarkerTable = X,Y,Texture	
 	if markersToAdd then
 		local prevMarkerIndex = 99999		
-		for iNewMarker,vNewMarker in pairs(markersToAdd) do
+		for iNewMarker,vNewMarker in pairs(markersToAdd) do			
 			local markerExists = false
-			local newMarkerData = vNewMarker[2]
+			local mIndex = iNewMarker
 			local gridKey = Exterminator.convertGridKeyToXY(iNewMarker)
 			local mTexture = vNewMarker
 			local mX = tonumber(gridKey[1])
 			local mY = tonumber(gridKey[2])
-			for iOldMarker,vOldMarker in pairs(markersToCheck) do
-				local oIndex = vOldMarker[1]				
-				local oTexture = vOldMarker[4]
-				local oX = vOldMarker[2]
-				local oY = vOldMarker[3]
+			for iOldMarker,vOldMarker in pairs(markersToCheck) do				
+				local oIndex = iOldMarker			
+				local oTexture = vOldMarker
 				--checkX
-				if oX == mX then
-					if oY == mY then
-						if mTexture == textureGridCleared  then
-							--NEW MARKER IS A big SQAURE
-							if oTexture == mTexture then
-								markerExists = true								
-							end
-						elseif oTexture ~= textureGridCleared then
-							markerExists = true						
-							--nEW MARKER IS A LITTLE CELL
-							if oTexture == mTexture then								
-								--marker is the same do nothing
+				if oIndex == mIndex then
+					-- check big squares						
+					if mTexture == textureGridCleared  then
+						--NEW MARKER IS A big SQAURE
+						if oTexture == mTexture then
+							markerExists = true								
+						end
+					elseif oTexture ~= textureGridCleared then
+						markerExists = true						
+						--nEW MARKER IS A LITTLE CELL
+						if oTexture == mTexture then								
+							--marker is the same do nothing
+							else
+							--Rremove the old marker
+							if prevMarkerIndex < oIndex then		
+								symAPI:removeSymbolByIndex((oIndex-1))
+								prevMarkerIndex = oIndex							
 								else
-								--Rremove the old marker
-								if prevMarkerIndex < oIndex then		
-									symAPI:removeSymbolByIndex((oIndex-1))
-									prevMarkerIndex = oIndex							
-									else
-									symAPI:removeSymbolByIndex(oIndex)
-									prevMarkerIndex = oIndex							
-								end
-								--add the marker
-								Exterminator.addMarker(symAPI,mTexture,mX,mY)
-								print("recieveMarkerUpdates:ADD X:" .. mX .. "Y:" .. mY .. " Tex:" .. mTexture)	
+								symAPI:removeSymbolByIndex(oIndex)
+								prevMarkerIndex = oIndex							
 							end
+							--add the marker
+							Exterminator.addMarker(symAPI,mTexture,mX,mY)
 						end
 					end
 				end
 			end
 			if markerExists == false then
-				Exterminator.addMarker(symAPI,mTexture,mX,mY)
-				print("recieveMarkerUpdates:ADD X:" .. mX .. "Y:" .. mY .. " Tex:" .. mTexture)			
+				Exterminator.addMarker(symAPI,mTexture,mX,mY)		
 			end
 		end
 		getNewMapMarkers = true
@@ -984,11 +990,56 @@ function Exterminator.recieveDiffSync (markersToAdd)
 end
 
 function OnCustomUIKeyReleased(key)	
-	--73 = KEY_NUMPAD9 
+	--print("OnCustomUIKeyReleased - KEY = " .. tostring(key))
+	
+	--73 = KEY_NUMPAD9 	
 	if key == 73 then
-		print("OnCustomUIKeyReleased SUCCESS:" .. tostring(key))
+		--print("OnCustomUIKeyReleased SUCCESS:OnConnectedMarkerSyncRequest ")
 		Exterminator.OnConnectedMarkerSyncRequest()	
 	end
+	--72 = KEY_NUMPAD8
+	if key == 72 then
+		--print("OnCustomUIKeyReleased SUCCESS:sendMarkerSync ")
+		Exterminator.sendMarkerSync()	
+	end
+end
+
+function Exterminator.saveQuick(  tbl,filename,reason )
+    local file = getFileWriter(filename,true,true)  
+
+	local count = 0
+    -- initiate variables for save procedure
+    for i,v in pairs(tbl) do
+		--print("EXMCLIENT:saveQuickOnRecieve:" .. tostring(i) .. ' - ' .. tostring(v))
+        if i == nil then else
+            if v == nil then else
+					local stringToWrite = reason .. ' - ' .. count .. ',' .. i .. ',' .. v  .. "\n"
+                	file:write( stringToWrite )
+				count = count + 1
+            end
+        end
+    end
+   
+    file:close()
+end
+
+function Exterminator.saveQuickOnRecieve(  tbl,filename,reason )
+    local file = getFileWriter(filename,true,true)  
+
+	local count = 0
+    -- initiate variables for save procedure
+    for i,v in pairs(tbl) do
+		--print("EXMCLIENT:saveQuickOnRecieve:" .. tostring(i) .. ' - ' .. tostring(v))
+        if i == nil then else
+            if v == nil then else
+					local stringToWrite = reason .. ' - ' .. count .. ',' .. i .. ',' .. v  .. "\n"
+                	file:write( stringToWrite )
+				count = count + 1
+            end
+        end
+    end
+   
+    file:close()
 end
 
 --required to initialise the mod
@@ -998,5 +1049,5 @@ Events.OnGameStart.Add(Exterminator.Initialize)
 Events.OnPlayerMove.Add(Exterminator.OnConnectedMarkerSyncRequest)
 
 --debug only to test various shit..
-Events.OnCustomUIKeyReleased.Add(OnCustomUIKeyReleased)
+--Events.OnCustomUIKeyReleased.Add(OnCustomUIKeyReleased) --DEBUG
 

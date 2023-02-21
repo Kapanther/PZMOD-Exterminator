@@ -1,4 +1,4 @@
-RawGrid = 
+RawGrid =
 	{ 
 	B2 = "Cleared",
 	B1 = "Cleared",

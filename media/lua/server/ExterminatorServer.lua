@@ -7,6 +7,7 @@ local playerSyncRequestsRecieved = 0
 local markerTables = {}
 local currentPlayer
 local currentMarkers = {}
+local debugMarkerOutput = 'MarkerOutput.txt' -- wrties into the c:\users\<username>\zomboid\lua folder (you can write anywhere else)
 
 --TODO server config
 function onServerStart() 
@@ -32,9 +33,7 @@ function onClientCommand(module, command, player, args)
         -- request the player markers        
         local playerCount =  getOnlinePlayers():size();    
 
-        if playerCount > 1 then
-            local debugMSG2 = "EXMServer:Sync Player Count > 1 PC= " .. playerCount
-            sendServerCommand(module, 'serverDebug', {debugMSG2}) --DEBUGONLY        
+        if playerCount > 1 then     
             sendServerCommand(module, 'requestMarkerSync', args)
             playerSyncRequests = playerCount
         else
@@ -44,22 +43,34 @@ function onClientCommand(module, command, player, args)
 
     if command == 'sendMarkerSync' then        
         playerSyncRequestsRecieved = playerSyncRequestsRecieved + 1
-        local debugMSG = "EXMServer:sendMarkerSync sync Recieved by PC=".. playerSyncRequestsRecieved .. '/' .. playerSyncRequests .. ' from ' .. args[1]
-        sendServerCommand(module, 'serverDebug', {debugMSG}) --DEBUGONLY
+        --sendServerDebugMsg("sendMarkerSync sync Recieved by PC=".. playerSyncRequestsRecieved .. '/' .. playerSyncRequests .. ' from ' .. args[1]) -- DEBUG
+        --DEBUG write table to file        
 
         -- add the data to memory on the server
         local playername =  args[1];
-        markerTables[playerSyncRequestsRecieved] = {playername,args[2]}
+        markerTables[playername] = args[2]
 
         if playerSyncRequestsRecieved >= playerSyncRequests then
-            local debugMSG2 = "EXMServer:sendMarkerSync:readToSyNC sync Recieved by PC=".. playerSyncRequestsRecieved .. '/' .. playerSyncRequests .. ' from ' .. args[1];
-            sendServerCommand(module, 'serverDebug', {debugMSG2}) --DEBUGONLY
-            doMarkerSyncChecks()
-            local debugMSG3 = 'EXMServer:aboutToUnpauseGame ' .. args[1];
-            sendServerCommand(module, 'serverDebug', {debugMSG3}) --DEBUGONLY            
+            --sendServerDebugMsg("sendMarkerSync:readToSyNC sync Recieved by PC=".. playerSyncRequestsRecieved .. '/' .. playerSyncRequests .. ' from ' .. args[1]) -- DEBUG
+            doMarkerSyncChecks()         
             unpauseGame()
         end
     end
+end
+
+function writeToDebugLog(stringToWrite)
+    local debugLog = getFileWriter(debugMarkerOutput,true,true)
+
+    
+    debugLog:write(stringToWrite)
+    debugLog:close()
+end
+
+function writeTableToLogo(tableToWrite)
+    local debugLog = getFileWriter(debugMarkerOutput,true,true)
+    
+    debugLog:write(stringToWrite)
+    debugLog:close()
 end
 
 function doMarkerSyncChecks()
@@ -67,35 +78,50 @@ function doMarkerSyncChecks()
     --print(debugMSG3)
     --sendServerCommand(EXMmodule, 'serverDebug', {debugMSG3}) --DEBUGONLY
     for i,v in pairs(markerTables) do
-        local differenceGrid = {}
-        if isTableEmpty(currentMarkers) then            
-            local debugMSG5 = "EXMServer:doMarkerSyncChecks:currentMarkers" .. v[1]
-            print(debugMSG5)
-            sendServerCommand(EXMmodule, 'serverDebug', {debugMSG5}) --DEBUGONLY
-            -- add the first markers to base grid to compare
-            currentPlayer = v[1]
-            currentMarkers = v[2]            
-        else
-            -- we are now on the second player lets start the comparison
-            local otherMarkers = v[2]
-            differenceGrid = difference(currentMarkers,otherMarkers)
-            --send the differend markers
-            local debugMSG6 = "EXMServer:doMarkerSyncChecks:sendDiffSync" .. v[1]
-            print(debugMSG6)
-            sendServerCommand(EXMmodule, 'serverDebug', {debugMSG6}) --DEBUGONLY
+        currentPlayer = i
+            local differenceGrid = {} -- resets the difference grid to empty
+
+            if isTableEmpty(v) then
+                if isTableEmpty(currentMarkers) then  
+                    --Do nothing becasue this table is empty and so is the current markers
+                    else
+                    --TODO Need to complete redo the logic here
+                    differenceGrid = currentMarkers
+                    --assert( table.save( differenceGrid, debugMarkerOutput, "BOTHEMPTY" ) == nil ) --DEBUG
+                    
+                end
+            else
+                if isTableEmpty(currentMarkers) then            
+                    --sendServerDebugMsg("doMarkerSyncChecks:currentMarkers") -- DEBUG
+                    --assert( table.save( v, debugMarkerOutput, "INITIAL" ) == nil ) --DEBUG
+                    -- add the first markers to base grid to compare                   
+                    currentMarkers = writeToTable(v)
+                    sendServerCommand(EXMmodule,'sendDiffSync',currentMarkers) -- DEBUG
+                            
+                else       
+                    -- the current markers are already populated and the new markers are difference lets do the check
+                    --sendServerDebugMsg("doMarkerSyncChecks:differenceGridrunning") -- DEBUG
+                    differenceGrid = difference(currentMarkers,v)
+                    --assert( table.save( differenceGrid, debugMarkerOutput, "DIFFGRID"  ) == nil )--DEBUG
+                end  
             if isTableEmpty(differenceGrid) then else
-            sendServerCommand(EXMmodule,'sendDiffSync',differenceGrid)
-             --update current makrers
+                sendServerCommand(EXMmodule,'sendDiffSync',differenceGrid)
+                --sendServerDebugMsg("doMarkerSyncChecks:differenceGridSent")--DEBUG
+                --update current makrers
                 for k,v in pairs (differenceGrid) do
-                local grid = v[1]
-                local cleared = v[2]            
-                currentMarkers[grid] = cleared
+                    local grid = v[1]
+                    local cleared = v[2]            
+                    currentMarkers[grid] = cleared
                 end
             end
-           
-
         end
     end
+end
+
+function sendServerDebugMsg(message)
+    local debugMSG = "EXMSERVERDEBUG:" .. message
+    print(debugMSG)
+    sendServerCommand(EXMmodule, 'serverDebug', {debugMSG}) --DEBUGONLY
 end
 
 function unpauseGame()
@@ -113,16 +139,19 @@ function difference(Ga, Gb)
 	local pairsCount = 1
     local countA = 1    
     for iA,vA in pairs(Ga) do
-		local gridA = vA[1]
+		local gridA = iA
 		local markerFound = false
 		local countB = 1
 		for iB,vB in pairs(Gb) do
-			local gridB = vB[1]
-			
+            local gridB
+            local clearedB
+            for vB1,vB2 in pairs(vB) do
+                gridB = vB1
+                clearedB = vB2
+            end					
 			if gridA == gridB then
 				markerFound = true
-				local clearedA = vA[2]
-				local clearedB = vB[2]
+				local clearedA = vA				
 				--remove table entries as they are both found
 				table.remove(Gb,countB)
 				if clearedA == clearedB then
@@ -152,9 +181,13 @@ function difference(Ga, Gb)
         countA = countA + 1
 	end
     --TODO This is not splitting the grid differences by the two players we are jsut sending all the diffs and letting the clients resolve the differences... A Bit yucky.. but im lazy
-	for iB,VB in pairs(Gb) do
-        local gridB = vB[1]
-        local clearedB = vB[2]
+	for iB,vB in pairs(Gb) do
+        local gridB
+        local clearedB
+        for vB1,vB2 in pairs(vB) do
+            gridB = vB1
+            clearedB = vB2
+        end	
         pairsToUpdate[gridB] = clearedB
         pairsCount = pairsCount + 1
     end   
@@ -166,6 +199,43 @@ function isTableEmpty(t)
         return false
       end
     return true
+end
+
+function writeToTable(  tableIn )
+    local tableOut = {}
+
+    -- initiate variables for save procedure
+    for i,v in pairs( tableIn ) do
+        if i == nil then else
+            if v == nil then else
+				--for x,y in pairs(v) do
+                    tableOut[i] = v
+				--end
+            end
+        end
+    end
+   
+    return tableOut
+end
+
+function table.save(  tbl,filename,reason )
+    local file = getFileWriter(filename,true,true)  
+
+    local count = 1
+    -- initiate variables for save procedure
+    for i,v in pairs( tbl ) do
+        if i == nil then else
+            if v == nil then else
+				--for x,y in pairs(v) do
+					local stringToWrite = reason .. ' - ' .. count .. ',' .. i  .. ',' .. v  .. "\n"
+                	file:write( stringToWrite )
+				--end
+                count = count + 1
+            end
+        end
+    end
+   
+    file:close()
 end
 
 if isServer() then
