@@ -39,6 +39,7 @@ MapSymbolDefinitions.getInstance():addTexture("EXMgridCleared", "media/ui/Lootab
 local floor = math.floor
 local cache_zombieCount = 0;
 local cache_nearestZombieDistance = 9999;
+local cache_nearestZombieBearing = 0;
 local cache_groundtype --Debug for checking ground 
 local clearedMarkersToWin = 1011;
 local timeSinceLastBeep = -1;
@@ -106,7 +107,8 @@ function Exterminator.Initialize()
 
 	--add zombie scanner check to equip Primary or secondary
 	Events.OnEquipPrimary.Add(Exterminator.OnEquipScanner)
-	Events.OnEquipSecondary.Add(Exterminator.OnEquipScanner)	
+	Events.OnEquipSecondary.Add(Exterminator.OnEquipScanner)
+	Events.OnClothingUpdated.Add(Exterminator.OnEquipScanner)	
 
 	--check if we are currently holding a zombie scanner	
 	if getPlayer() and getPlayer():getPrimaryHandItem() then		
@@ -130,6 +132,7 @@ function Exterminator.getZombieScanData(playerX,playerY)
 	local zombie = nil;
 	local minDistanceToZombie = 9999
 	local distanceToZombie = 9999
+	local bearingToZombie = 0
 	if zombieCount > 0 then
 		currentZombies = {} --need to clear the list		
 		for i=0,zombieCount-1,1 do
@@ -143,10 +146,12 @@ function Exterminator.getZombieScanData(playerX,playerY)
 				currentZombies[i] = zombieData --writes zombie X-Y for analysis in grids later			
 				if distanceToZombie<minDistanceToZombie then
 					minDistanceToZombie = floor(distanceToZombie);
+					bearingToZombie = Exterminator.CalculateBearing(playerX,playerY,zombX,zombY)
 				end
 			end
         end
 		cache_nearestZombieDistance = minDistanceToZombie;
+		cache_nearestZombieBearing = bearingToZombie;
 	end
 end
 
@@ -233,7 +238,7 @@ function Exterminator.onUITick()
 		if lastHeldItem == itemZscannerMK1 then
 			text_zombieScannerReadout =  "Z Count = " .. cache_zombieCount;	
 		else
-			text_zombieScannerReadout = "Z Count = " .. cache_zombieCount .. ' Nearest Z = ' .. cache_nearestZombieDistance .. ' m';	
+			text_zombieScannerReadout = "Z Count = " .. cache_zombieCount .. ' Nearest Z = ' .. cache_nearestZombieDistance .. ' m Bearing Z = ' .. cache_nearestZombieBearing;	
 		end
 			
 	end
@@ -302,6 +307,18 @@ function Exterminator.ScannerBeep()
 	soundManager:PlaySound("ZombieScannerBeep",false,7)
 end
 
+function Exterminator.SoundAirHorn()
+	 -- Load the airhorn sound file
+
+	 -- Play the sound at the player's location
+	 local player = getPlayer()
+	 local x, y, z = player:getX(), player:getY(), player:getZ()
+	 getSoundManager():PlayWorldSound("AirHornStart", x, y, z, 1.0, 1.0, false)
+ 
+	 -- Attract zombies to the player's location
+	 attractZombiesToLocation(x, y, z, 50) -- Replace with your own function to attract zombies
+end
+
 function Exterminator.ClearedAreaBeep()
 	--print("Exterminator.ClearedAreaBeep") --DEBUG run beep sound
 	local soundManager = getSoundManager()
@@ -310,13 +327,17 @@ end
 
 function Exterminator.OnEquipScanner(character,item)
 	--print("EXM:OnEquipScanner")
-	if not character:isLocalPlayer() then return end
-
+	if not character:isLocalPlayer() then return end	 
+	local attachedItem = character:getAttachedItems():getItem("OnMiningHelmetHeadLight")
+	local itemToPass = item
+	if attachedItem then
+		itemToPass = attachedItem
+	end
 	--Draw UI if scanner is equipped	
-	if Exterminator.isZombieScanner(item) then
+	if Exterminator.isZombieScanner(itemToPass) then
 			if isScannerEquipped == false then
 			Events.OnPostUIDraw.Add(Exterminator.runZombieScanner)
-			itemZScanner = item
+			itemZScanner = itemToPass
 			isScannerEquipped = true
 			end
 	else
@@ -711,6 +732,16 @@ function Exterminator.RoundUpToInt(num)
 	local mult = 10^(numDecimalPlaces or 0)
 	return math.floor((num+0.5) * mult + 0.5) / mult
 end
+
+function Exterminator.CalculateBearing(startX, startY, endX, endY)
+	local dLon = endY - startY
+	local y = endX - startX
+	local x = dLon * math.cos(math.rad(startX))
+	local bearing = math.atan2(y, x)
+	bearing = math.deg(bearing)
+	bearing = (bearing + 360) % 360
+	return bearing
+  end
 
 function Exterminator.isGridPointValid(gridA,gridB,gridRef)	
 	if ExterminatorGrid[gridA][gridB] then

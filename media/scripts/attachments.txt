@@ -4,36 +4,64 @@ module Base
 	{
 		mesh = Skinned/FemaleBody,
 
-        attachment ZombieScanner_L
+		attachment on_mining_helmet_low_right_torch
 		{
-			offset = -0.0080 -0.0600 0.0700,
-			rotate = 94.0000 0.0000 104.0000,
-			bone = Bip01_Spine1,
+			offset 	= 0.0800 -0.0800 -0.0300,
+			rotate 	= -180.0000 90.0000 -90.0000,
+			bone 	= Bip01_Head,
 		}
-
-		attachment ZombieScanner_R
+			
+		attachment on_mining_helmet_low_right
 		{
-			offset = -0.0060 0.0600 0.0620,
-			rotate = -94.0000 0.0000 -98.0000,
-			bone = Bip01_Spine1,
+			offset 	= 0.0800 -0.0750 -0.0600,
+			rotate 	= -180.0000 90.0000 -90.0000,
+			bone 	= Bip01_Head,
+		}
+		
+		attachment on_mining_helmet_right
+		{
+			offset 	= 0.1300 -0.0750 -0.0300,
+			rotate 	= -180.0000 90.0000 -90.0000,
+			bone 	= Bip01_Head,
+		}
+				
+		attachment on_mining_helmet_middle
+		{
+			offset 	= 0.1400 0.0000 0.0500,
+			rotate 	= 0.0000 30.0000 90.0000,
+			bone 	= Bip01_Head,
 		}
     }
     model MaleBody
 	{
 		mesh = Skinned/MaleBody,
 
-		attachment ZombieScanner_L
+		attachment on_mining_helmet_low_right_torch
 		{
-			offset = -0.0060 -0.0600 0.0620,
-			rotate = -94.0000 0.0000 -98.0000,
-			bone = Bip01_Spine1,
+			offset 	= 0.0800 -0.0800 -0.0300,
+			rotate 	= -180.0000 90.0000 -90.0000,
+			bone 	= Bip01_Head,
 		}
-
-		attachment ZombieScanner_R
+			
+		attachment on_mining_helmet_low_right
 		{
-			offset = -0.0060 0.0600 0.0620,
-			rotate = -94.0000 0.0000 -98.0000,
-			bone = Bip01_Spine1,
+			offset 	= 0.0800 -0.0750 -0.0600,
+			rotate 	= -180.0000 90.0000 -90.0000,
+			bone 	= Bip01_Head,
+		}
+		
+		attachment on_mining_helmet_right
+		{
+			offset 	= 0.1300 -0.0750 -0.0300,
+			rotate 	= -180.0000 90.0000 -90.0000,
+			bone 	= Bip01_Head,
+		}
+		
+		attachment on_mining_helmet_middle
+		{
+			offset 	= 0.1400 0.0000 0.0500,
+			rotate 	= 0.0000 30.0000 90.0000,
+			bone 	= Bip01_Head,
 		}
     }
 }

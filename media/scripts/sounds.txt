@@ -15,4 +15,26 @@ module Exterminator {
 		is3D							=	TRUE,
         clip { file = media/sounds/ClearedAreaBeep.ogg, distanceMax = 10, volume = 0.5, }
     }
+        	sound AirHornStart
+    {
+        category						=	Airhorn, 
+		loop							=	FALSE, 
+		is3D							=	TRUE,
+        clip { file = media/sounds/AirHornStart.ogg, distanceMax = 10, volume = 0.5, }
+    }
+            	sound AirHornHold
+    {
+        category						=	Airhorn, 
+		loop							=	TRUE, 
+		is3D							=	TRUE,
+        clip { file = media/sounds/AirHornHold.ogg, distanceMax = 10, volume = 0.5, }
+    }
+            	sound AirHornEnd
+    {
+        category						=	Airhorn, 
+		loop							=	FALSE, 
+		is3D							=	TRUE,
+        clip { file = media/sounds/AirHornEnd.ogg, distanceMax = 10, volume = 0.5, }
+    }
+    
 }
