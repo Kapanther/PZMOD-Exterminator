@@ -46,35 +46,6 @@ module Exterminator
                 WorldStaticModel	=	ZombieScannerMK2_ground,
 	}
 
-        item AirHorn
-        {
-        DisplayCategory = Explosives,
-        MaxRange	=	10,
-        Type	=	Weapon,
-        MinimumSwingTime	=	1.5,
-		SwingAnim	=	Throw,
-        WeaponSprite = Molotov,
-        UseSelf	=	TRUE,
-        DisplayName	=	Noise Maker,
-        SwingTime	=	1.5,
-        SwingAmountBeforeImpact	=	0.1,
-        PhysicsObject	=	NoiseMaker,
-        MinDamage	=	0,
-        Weight	=	1.5,
-        MaxDamage	=	0,
-        MaxHitCount	=	0,
-        Icon	=	NoiseMaker,
-        NoiseRange  =   17,
-        NoiseDuration = 30,
-        triggerExplosionTimer   =   50,
-        CanBePlaced = TRUE,
-        CanBeReused =   TRUE,
-        ExplosionSound  =   NoiseMakerActivate,
-        Tooltip = Tooltip_Trap,
-        WorldStaticModel = NoiseMaker,
-        Use = Exterminator.SoundAirHorn()
-        }
-
     	item Battery
 	{
 	    DisplayCategory = Electronics,
