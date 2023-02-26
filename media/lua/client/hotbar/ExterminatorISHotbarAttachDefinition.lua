@@ -10,10 +10,6 @@ local MiningHelmet = {
 	name = "Mining Helmet with Mount",
 	animset = "back",
 	attachments = {
-		TorchSmall			= "OnMiningHelmetTorchSmall",
-		Torchb				= "OnMiningHelmetTorchSmall",
-		HandTorchSmall 		= "OnMiningHelmetHandTorchSmall",
-		HandTorchBig 		= "OnMiningHelmetHandTorchBig",
 		HeadLight			= "OnMiningHelmetHeadLight",
 	},
 }

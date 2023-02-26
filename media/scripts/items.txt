@@ -45,20 +45,6 @@ module Exterminator
                 secondaryAnimMask	=	HoldingTorchLeft,
                 WorldStaticModel	=	ZombieScannerMK2_ground,
 	}
-
-    	item Battery
-	{
-	    DisplayCategory = Electronics,
-		Weight	=	0.1,
-		Type	=	Drainable,
-		UseDelta	=	0.00001,
-		UseWhileEquipped	=	FALSE,
-		DisplayName	=	Battery,
-		Icon	=	Battery,
-		MetalValue = 1,
-		cantBeConsolided = TRUE,
-		WorldStaticModel = Battery,
-	}
         item Hat_HardHat_Miner_With_Light
 	{
 	        DisplayCategory 	= Accessory,
