@@ -8,9 +8,9 @@
 -- Recipe.OnCreate = Recipe.OnCreate or {}
 
 -- Return true if recipe is valid, false otherwise
-function Recipe.OnTest.ZombieScannerBatteryRemoval (sourceItem, result)
-	return sourceItem:getUsedDelta() > 0;
-end
+--function Recipe.OnTest.ZombieScannerBatteryRemoval (sourceItem, result)
+	--return sourceItem:getUsedDelta() > 0;
+--end
 
 -- When creating item in result box of crafting panel.
 function Recipe.OnCreate.ZombieScannerBatteryRemoval(items, result, player)

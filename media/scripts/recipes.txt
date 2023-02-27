@@ -8,9 +8,8 @@ module Exterminator
      keep ZombieScannerMK1/ZombieScannerMK2,
 
      Result:Battery,
-     Time:30,
-     Category:Electronics,
-     OnTest:Recipe.OnTest.ZombieScannerBatteryRemoval,
+     Time:30,     
+     OnTest:Recipe.OnTest.TorchBatteryRemoval,
      OnCreate:Recipe.OnCreate.ZombieScannerBatteryRemoval,
      StopOnWalk:false,
    }
@@ -21,8 +20,7 @@ module Exterminator
      destroy Battery,
 
      Result:ZombieScannerMK1,
-     Time:30,
-     Category:Electronics,
+     Time:30,     
      OnTest:Recipe.OnTest.ZombieScannerBatteryInsert,
      OnCreate:Recipe.OnCreate.ZombieScannerBatteryInsert,
      StopOnWalk:false,
@@ -34,8 +32,7 @@ module Exterminator
      destroy Battery,
 
      Result:ZombieScannerMK2,
-     Time:30,
-     Category:Electronics,
+     Time:30,     
      OnTest:Recipe.OnTest.ZombieScannerBatteryInsert,
      OnCreate:Recipe.OnCreate.ZombieScannerBatteryInsert,
      StopOnWalk:false,
@@ -50,8 +47,7 @@ module Exterminator
       Time:30.0,
       OnTest:Recipe.OnTest.DismantleZombieScanner,
       OnGiveXP:Recipe.OnGiveXP.DismantleElectronics,
-      OnCreate:Recipe.OnCreate.DismantleZombieScanner,
-      Category:Electronics,
+      OnCreate:Recipe.OnCreate.DismantleZombieScanner,      
       AnimNode:Disassemble,
       Prop1:Screwdriver,
       Prop2:Source=1,

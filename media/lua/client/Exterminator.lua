@@ -36,6 +36,10 @@ MapSymbolDefinitions.getInstance():addTexture("EXMinfested", "media/ui/LootableM
 MapSymbolDefinitions.getInstance():addTexture("EXMdiscovered", "media/ui/LootableMaps/EXMdiscovered.png")
 MapSymbolDefinitions.getInstance():addTexture("EXMgridCleared", "media/ui/LootableMaps/EXMgridCleared.png")
 
+--UI instance
+panelInstance = nil
+local panelEnabled = true
+
 local floor = math.floor
 local cache_zombieCount = 0;
 local cache_nearestZombieDistance = 9999;
@@ -54,7 +58,7 @@ local gridBsize = 500
 local gridCsize = 100
 local currentGridA = nil;
 local currentGridB = nil;
-local currentGridBnodecount = 99;
+local currentGridBnodecount = 25;
 local currentGridBcleared = false;
 local currentGridClearedCount = 0
 local currentGridBx = 0
@@ -89,10 +93,55 @@ local itemZscannerMK2 = "ZombieScannerMK2"
 local itemZScanner = nil
 local zombieScannerUpdateInterval = 50; 
 local zombieScannerTimeSinceLastUpdate = -1;
+local zombieScannerBatteryLeft = 1
 local isItemOn = false;
 local isScannerEquipped = false
 local lastHeldItem = ""
-local showDebugUI = true
+local showDebugUI = false
+
+---------------------------
+------------UI-------------
+---------------------------
+
+function onCreatePlayer(idx,player)
+	if panelInstance == nil then
+		panelInstance = ISscannerPanel:new(idx,player,panelEnabled)		
+		panelInstance:initialize()
+		panelInstance:instantiate()
+		panelInstance:createChildren()
+		if panelEnabled then
+			panelInstance:addToUIManager()
+		end
+		panelInstance:initConfig()
+		panelInstance:checkNewResolution()
+		panelInstance:addSettingsPanel()
+	elseif panelInstance:getPlayerIsDead() == true then
+		panelInstance:setPlayer(idx,player)
+	end
+end
+
+local function onPlayerDeath(player)
+	if panelInstance ~= nil and player == panelInstance:getPlayer() then
+		panelInstance:setPlayerIsDead(true);
+	end
+end
+
+local function onSave()
+	if panelInstance ~= nil then
+		panelInstance:writeConfig()
+	end
+end
+
+local function onResolutionChange()
+	if panelInstance ~= nil then
+		panelInstance:checkNewResolution()
+	end
+end
+
+---------------------------
+------------ExterminatorMod-------------
+---------------------------
+
 
 --starts the Zombie scanner mod
 function Exterminator.Initialize()
@@ -171,6 +220,7 @@ function Exterminator.runZombieScanner()
 			--get the player check the zombie scanner is on.. it emits light as means of turning on			
 			local itemOn = itemZScanner:isEmittingLight();
 			local itemName = itemZScanner:getType();
+			zombieScannerBatteryLeft = itemZScanner:getUsedDelta()
 			lastHeldItem = itemName;
 			--Check if they are holding a zombie scanner and its turned on
 			if itemOn then
@@ -214,36 +264,48 @@ function Exterminator.onUITick()
 
 	--persistent UI
 	-- 001 CURRENT GRID CLEARNACE
-	local text_currentGridCleared = 'No Grid Data Detected - Equip a zombie scanner to start'
+
+	local text_currentGridCleared = 'No Grid Data'
 	local thisGridclearedPercentage = 0
-	if currentGridB then
+	if currentGridClearedCount > 0 then
 		thisGridclearedPercentage = floor(currentGridClearedCount/currentGridBnodecount*100);
-		text_currentGridCleared = 'Current Grid = ' .. currentGridB .. ' Cleared ' .. thisGridclearedPercentage .. ' % (' .. currentGridClearedCount .. '/' .. currentGridBnodecount .. ')'; 
+		text_currentGridCleared = 'Grid ' .. thisGridclearedPercentage .. ' % (' .. currentGridClearedCount .. '/' .. currentGridBnodecount .. ')'; 		
+	else 
+		text_currentGridCleared = 'Grid ' .. 0 .. ' % (' .. currentGridClearedCount .. '/' .. currentGridBnodecount .. ')';
 	end			
-	textManager:DrawString(UIFont.Large, screenX, screenY, text_currentGridCleared, 0.1, 0.8, 1, 1);
+	panelInstance.currentGridStatus = text_currentGridCleared
 
 	-- 002 CURRENT MAP CLEARNACE
-	local text_currentMapCleared = 'No Map Data Detected - Equip a zombie scanner to start'
+	local text_currentMapCleared = 'No Map Data Detected'
 	local clearedMapMarkers = 0
 	local clearedPercentage = 0
 	if currentGridBMarkers then
 		clearedPercentage = floor(currentGridBMarkerClearedCount/clearedMarkersToWin*100);		
-		text_currentMapCleared = 'Map Cleared ' .. clearedPercentage .. ' % (' .. currentGridBMarkerClearedCount .. '/' .. clearedMarkersToWin .. ')'; 
-	end	
-	textManager:DrawString(UIFont.Large, screenX, screenY + 30, text_currentMapCleared, 0.1, 0.8, 1, 1);
+		text_currentMapCleared = 'Total (' .. currentGridBMarkerClearedCount .. '/' .. clearedMarkersToWin .. ')'; 
+	end
+	panelInstance.totalClearedStatus = 	text_currentMapCleared
+	
 
 	--003 ZOMBIE SCANNER COUNT
-	local text_zombieScannerReadout = "(No Zombie Scanner Equipped)"
+	local text_zombieScannerReadout = "No Scan"
+	local text_zombieDistanceReadout = "?? m"
+	local angle_nearestzombie = 0
 	if isItemOn then
 		if lastHeldItem == itemZscannerMK1 then
-			text_zombieScannerReadout =  "Z Count = " .. cache_zombieCount;	
+			text_zombieScannerReadout =  "Z = " .. cache_zombieCount;	
 		else
-			text_zombieScannerReadout = "Z Count = " .. cache_zombieCount .. ' Nearest Z = ' .. cache_nearestZombieDistance .. ' m Bearing Z = ' .. cache_nearestZombieBearing;	
+			text_zombieScannerReadout = "Z = " .. cache_zombieCount;
+			text_zombieDistanceReadout = cache_nearestZombieDistance .. ' m'
+			angle_nearestzombie = cache_nearestZombieBearing
 		end
 			
 	end
-	textManager:DrawString(UIFont.Large, screenX, screenY + 60, text_zombieScannerReadout, 0.1, 0.8, 1, 1);
+	panelInstance.zombieCount = text_zombieScannerReadout
+	panelInstance.nearestZombieDistance = text_zombieDistanceReadout
+	panelInstance.nearestZombieAngle = angle_nearestzombie
 	
+	--004 ZOMBIE BATTETY LEFT 
+	panelInstance.batteryRemaining = zombieScannerBatteryLeft
 
 	--Debug UI ONLY
 	if showDebugUI then
@@ -261,9 +323,12 @@ function Exterminator.onUITick()
 		end
 		local text_currentMarkers = "Marker Count: " .. countMarkers
 		local text_currentBGridExtents = "Current Grid Extents = X " .. currentGridBMinX .. ',Y' .. currentGridBMaxX .. " : " .. currentGridBMinY .. ',' .. currentGridBMaxY
+		textManager:DrawString(UIFont.Large, screenX, screenY, text_currentGridCleared, 0.1, 0.8, 1, 1);
+		textManager:DrawString(UIFont.Large, screenX, screenY + 30, text_currentMapCleared, 0.1, 0.8, 1, 1);
+		textManager:DrawString(UIFont.Large, screenX, screenY + 60, text_zombieScannerReadout, 0.1, 0.8, 1, 1);
 		textManager:DrawString(UIFont.Large, screenX, screenY + 90, tostring(timeSinceLastBeep), 0.1, 0.8, 1, 1);
 		textManager:DrawString(UIFont.Large, screenX, screenY + 120, tostring(zombieScannerTimeSinceLastUpdate), 0.1, 0.8, 1, 1);
-		textManager:DrawString(UIFont.Large, screenX, screenY + 150, tostring(isItemOn), 0.1, 0.8, 1, 1);
+		textManager:DrawString(UIFont.Large, screenX, screenY + 150, tostring(isItemOn) .. "Battery=" .. zombieScannerBatteryLeft, 0.1, 0.8, 1, 1);
 		textManager:DrawString(UIFont.Large, screenX, screenY + 180, text_playerPos, 0.1, 0.8, 1, 1);		
 		textManager:DrawString(UIFont.Large, screenX, screenY + 210, text_currentMarkers, 0.1, 0.8, 1, 1);
 		textManager:DrawString(UIFont.Large, screenX, screenY + 240, text_currentGridCount, 0.1, 0.8, 1, 1);
@@ -1081,4 +1146,11 @@ Events.OnPlayerMove.Add(Exterminator.OnConnectedMarkerSyncRequest)
 
 --debug only to test various shit..
 --Events.OnCustomUIKeyReleased.Add(OnCustomUIKeyReleased) --DEBUG
+
+--UI Events--
+
+Events.OnCreatePlayer.Add(onCreatePlayer) -- Starts The UI
+Events.OnPlayerDeath.Add(onPlayerDeath); --Removes The UI on death
+Events.OnSave.Add(onSave);
+Events.OnResolutionChange.Add(onResolutionChange)
 
