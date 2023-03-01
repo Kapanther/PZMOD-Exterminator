@@ -8,7 +8,7 @@ module Exterminator
      keep ZombieScannerMK1/ZombieScannerMK2,
 
      Result:Battery,
-     Time:30,     
+     Time:100,     
      OnTest:Recipe.OnTest.TorchBatteryRemoval,
      OnCreate:Recipe.OnCreate.ZombieScannerBatteryRemoval,
      StopOnWalk:false,
@@ -20,7 +20,7 @@ module Exterminator
      destroy Battery,
 
      Result:ZombieScannerMK1,
-     Time:30,     
+     Time:100,     
      OnTest:Recipe.OnTest.ZombieScannerBatteryInsert,
      OnCreate:Recipe.OnCreate.ZombieScannerBatteryInsert,
      StopOnWalk:false,
@@ -32,7 +32,7 @@ module Exterminator
      destroy Battery,
 
      Result:ZombieScannerMK2,
-     Time:30,     
+     Time:100,     
      OnTest:Recipe.OnTest.ZombieScannerBatteryInsert,
      OnCreate:Recipe.OnCreate.ZombieScannerBatteryInsert,
      StopOnWalk:false,
@@ -44,10 +44,68 @@ module Exterminator
       keep [Recipe.GetItemTypes.Screwdriver],
 
       Result:ElectronicsScrap,
-      Time:30.0,
+      Time:1000.0,
       OnTest:Recipe.OnTest.DismantleZombieScanner,
       OnGiveXP:Recipe.OnGiveXP.DismantleElectronics,
       OnCreate:Recipe.OnCreate.DismantleZombieScanner,      
+      AnimNode:Disassemble,
+      Prop1:Screwdriver,
+      Prop2:Source=1,
+   }
+
+   recipe Make Zombie Scanner MK1
+   {
+      Battery,
+      ElectronicsScrap,
+      RadioRed/RadioBlack/RadioMakeShift,
+      ElectricWire,
+      ScannerModule,
+      HandTorch,
+      keep [Recipe.GetItemTypes.Screwdriver],
+
+      NoBrokenItems:true,
+      NeedToBeLearn:false,
+      SkillRequired:Electricity=1,
+      Result:ZombieScannerMK1,
+      Time:1000,    
+      AnimNode:Disassemble,
+      Prop1:Screwdriver,
+      Prop2:Source=1,
+   }
+   recipe Make Zombie Scanner MK2
+   {
+      HamRadio1/HamRadio2/HamRadioMakeShift,
+      Battery,
+      ElectronicsScrap=2,
+      RadioRed/RadioBlack/RadioMakeShift,
+      ElectricWire,
+      RadioReceiver,
+      ScannerModule=2,,
+      HandTorch,
+      keep [Recipe.GetItemTypes.Screwdriver],
+
+      NoBrokenItems:true,
+      NeedToBeLearn:false,
+      SkillRequired:Electricity=2,
+      Result:ZombieScannerMK2,
+      Time:1000,   
+      AnimNode:Disassemble,
+      Prop1:Screwdriver,
+      Prop2:Source=1,
+   }
+   recipe Upgrade Zombie Scanner MK1 into a MK2
+   {
+      HamRadio1/HamRadio2/HamRadioMakeShift,
+      ZombieScannerMK1,
+      Computer,
+      ElectronicsScrap,
+      keep [Recipe.GetItemTypes.Screwdriver],
+
+      NoBrokenItems:true,
+      NeedToBeLearn:false,
+      SkillRequired:Electricity=2,
+      Result:ZombieScannerMK2,
+      Time:1000,   
       AnimNode:Disassemble,
       Prop1:Screwdriver,
       Prop2:Source=1,

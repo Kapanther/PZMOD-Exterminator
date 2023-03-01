@@ -240,5 +240,13 @@ end
 
 if isServer() then
     Events.OnServerStarted.Add(onServerStart)
-    Events.OnClientCommand.Add(onClientCommand) --// a client sends to server    
+    Events.OnClientCommand.Add(onClientCommand) --// a client sends to server
+    local sandboxOptions = getSandboxOptions()
+    sandboxOptions:set("ZombieConfig.RespawnHours", 0) -- should prevent respawns on server
+elseif isClient() == false then
+    local sandboxOptions = getSandboxOptions()
+    sandboxOptions:set("ZombieConfig.RespawnHours", 0)    
 end
+local sandboxOptions = getSandboxOptions()
+local test = sandboxOptions:getOptionByName("ZombieConfig.RespawnHours")
+--print(test:asConfigOptions():getValueAsString())

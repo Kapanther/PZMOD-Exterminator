@@ -91,7 +91,7 @@ local textManager = getTextManager();
 local itemZscannerMK1 = "ZombieScannerMK1"
 local itemZscannerMK2 = "ZombieScannerMK2"
 local itemZScanner = nil
-local zombieScannerUpdateInterval = 50; 
+local zombieScannerUpdateInterval = 20; --reducing this update interval will increase lag at it polls the zombies more
 local zombieScannerTimeSinceLastUpdate = -1;
 local zombieScannerBatteryLeft = 1
 local isItemOn = false;
@@ -287,12 +287,14 @@ function Exterminator.onUITick()
 	
 
 	--003 ZOMBIE SCANNER COUNT
-	local text_zombieScannerReadout = "No Scan"
+	local text_zombieScannerReadout = "No Scanner"
 	local text_zombieDistanceReadout = "?? m"
 	local angle_nearestzombie = 0
 	if isItemOn then
 		if lastHeldItem == itemZscannerMK1 then
-			text_zombieScannerReadout =  "Z = " .. cache_zombieCount;	
+			text_zombieScannerReadout =  "Z = " .. cache_zombieCount;
+			text_zombieDistanceReadout = 'zSmk1'
+			angle_nearestzombie = cache_nearestZombieBearing	
 		else
 			text_zombieScannerReadout = "Z = " .. cache_zombieCount;
 			text_zombieDistanceReadout = cache_nearestZombieDistance .. ' m'
@@ -302,10 +304,8 @@ function Exterminator.onUITick()
 	end
 	panelInstance.zombieCount = text_zombieScannerReadout
 	panelInstance.nearestZombieDistance = text_zombieDistanceReadout
-	panelInstance.nearestZombieAngle = angle_nearestzombie
-	
-	--004 ZOMBIE BATTETY LEFT 
-	panelInstance.batteryRemaining = zombieScannerBatteryLeft
+	panelInstance.nearestZombieAngle = angle_nearestzombie	
+	panelInstance.batteryRemaining = zombieScannerBatteryLeft--004 ZOMBIE BATTETY LEFT 
 
 	--Debug UI ONLY
 	if showDebugUI then

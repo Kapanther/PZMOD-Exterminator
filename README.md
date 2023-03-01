@@ -1,14 +1,11 @@
 # Exterminator - Project Zomboid Mod
 ## Todo
-- Check recipes for MK1/MK2 Scanner
+- Check recipes for MK1/MK2 Scanner work
 - Add prevent respawns on zombies 
-- Add new spawn location - city escape. Remove other spawn location options.
+- Add new spawn location and premise miliary clearance 
 - Check GRID B poitns are been shared over network
 - fix scanner models to look better
-- possibly adjsut battery time on scanner
 - prep for steam workshop
-- MK 3 combat helmet with vector and 360 degreeee vision (slightly reduce vision)
-- move UI to panel
 - add airhorn attractor
 
 ## Future Ideas
@@ -51,10 +48,10 @@ Beeps get closer together as you get closer to a zombie
 70m range
 
 ### Required Tools / Ingredients / Skills
-- 1x Powercord
+- 1x Electric Wire
 - 1x Radio
-- 1x Computer
-- 1x Metal Tool Box
+- 1x Scanner Module
+- 1x Torch
 - 1x Battery
 
 ## Zombie Scanner - MK2
@@ -64,12 +61,18 @@ A count is displayed to the user of zombies present
 100m range
 
 ### Required Tools / Ingredients / Skills
-- 1x Powercord
+- 1x Electric Wire
 - 1x Radio
 - 1x Ham Radio
-- 2x Computer
-- 1x Metal Tool Box
+- 1x Scanner Module
+- 1x Radio Receiver
+- 1x Torch
 - 1x Battery
+
+### Upgrade MK1 Scanner
+- Zombie Scanner MK1
+- 1x Ham Radio
+- 1x Radio Receiver
 
 ## Installation Instructions
 Copy all of these files into the 
