@@ -6,8 +6,8 @@ module Base
 				
 		attachment on_mining_helmet_middle
 		{
-			offset 	= 0.1400 0.0000 0.0500,
-			rotate 	= 0.0000 30.0000 90.0000,
+			offset 	= 0.250 0.0000 0.0500,
+			rotate 	= 180.0000 90.0000 270.0000,
 			bone 	= Bip01_Head,
 		}
     }
@@ -17,8 +17,8 @@ module Base
 		
 		attachment on_mining_helmet_middle
 		{
-			offset 	= 0.1400 0.0000 0.0500,
-			rotate 	= 0.0000 30.0000 90.0000,
+			offset 	= 0.250 0.0000 0.0500,
+			rotate 	= 180.0000 90.0000 270.0000,
 			bone 	= Bip01_Head,
 		}
     }

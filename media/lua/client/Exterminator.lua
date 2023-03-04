@@ -201,6 +201,10 @@ function Exterminator.getZombieScanData(playerX,playerY)
         end
 		cache_nearestZombieDistance = minDistanceToZombie;
 		cache_nearestZombieBearing = bearingToZombie;
+	else
+		currentZombies = {}
+		cache_nearestZombieDistance = 999
+		cache_nearestZombieBearing = 0
 	end
 end
 
@@ -343,7 +347,7 @@ function Exterminator.ScannerFunctionMk1(zombieDistance)
 	if zombieDistance < zombieDistanceLimitMk1 then	
 		if timeSinceLastBeep < 0 then
 		--TODO beep the scanner and reset timer
-		Exterminator.ScannerBeep()
+		Exterminator.ScannerBeep(zombieDistance)
 		timeSinceLastBeep = floor(zombieDistance) * distanceMultiplier;
 		else
 		timeSinceLastBeep = timeSinceLastBeep - 1;
@@ -358,7 +362,7 @@ function Exterminator.ScannerFunctionMk2(zombieDistance)
 	if zombieDistance < zombieDistanceLimitMk2 then	
 		if timeSinceLastBeep < 0 then
 		--TODO beep the scanner and reset timer
-		Exterminator.ScannerBeep()
+		Exterminator.ScannerBeep(zombieDistance)
 		timeSinceLastBeep = floor(zombieDistance) * distanceMultiplier;
 		else
 		timeSinceLastBeep = timeSinceLastBeep - 1;
@@ -366,10 +370,14 @@ function Exterminator.ScannerFunctionMk2(zombieDistance)
 	end
 end
 
-function Exterminator.ScannerBeep()
-	--print("Exterminator.ScannerBeep") --DEBUG run beep sound
+function Exterminator.ScannerBeep(distanceToZombie)
+	--print("Exterminator.ScannerBeep") --DEBUG run beep sound	
 	local soundManager = getSoundManager()
-	soundManager:PlaySound("ZombieScannerBeep",false,7)
+	if distanceToZombie < 6 then
+		soundManager:PlaySound("ZombieScannerBeepSoft",false,7)
+	else
+		soundManager:PlaySound("ZombieScannerBeep",false,7)
+	end
 end
 
 function Exterminator.SoundAirHorn()
@@ -518,7 +526,7 @@ function Exterminator.getMapMarkers(minX,maxX,minY,maxY)
 					elseif sym_texture == textureGridCleared then
 						local markerBEntry = {i,sym_x,sym_y,sym_texture}
 						currentGridBMarkers[markerBcount] = markerBEntry --MarkerBTAble = index,X,Y,Texture
-						markerBcount = markerBcount + 1						
+						markerBcount = markerBcount + 1												
 					end
 				end
 			end
@@ -602,12 +610,30 @@ function Exterminator.refreshMapMarkers(player)
 	end	
 	if currentGridClearedCount >= currentGridBnodecount then 
 		if currentGridBcleared then
+			--TODO this is not working as currentGRIDB clears isnt set
 			-- do nother currentGridBcleared is alreayd cleared no need to check maekrs
 			else
-				currentGridBcleared = true			
-				--add a grid cleared marker at the grid B location
-				addMarkers[addMarkersCount] = {currentGridBx,currentGridBy,textureGridCleared}
-				addMarkersCount = addMarkersCount + 1
+				currentGridBcleared = true
+				--check there is not already a marker
+				local BmarkerExists = false;
+				if currentGridBMarkers then
+					for iBmark,vBmark in pairs(currentGridBMarkers) do
+						local vBmarkIndex = vBmark[1]
+						local vBmarkX = vBmark[2]
+						local vBmarkY = vBmark[3]
+						if vBmarkX == currentGridBx and vBmarkY == currentGridBy then
+							--set for Deletion
+							BmarkerExists = true
+						end
+					end
+				end
+
+				if BmarkerExists == false then
+					--add a grid cleared marker at the grid B location
+					addMarkers[addMarkersCount] = {currentGridBx,currentGridBy,textureGridCleared}
+					addMarkersCount = addMarkersCount + 1
+				end			
+				
 		end
 	else
 		currentGridBcleared = false
@@ -621,6 +647,7 @@ function Exterminator.refreshMapMarkers(player)
 					--set for Deletion
 					removeMarkers[removeMarkersCount] = {vBmarkIndex,vBmarkX,vBmarkY}--RemoveMarkerTable = Index,X,Y
 					removeMarkersCount = removeMarkersCount + 1
+					getNewMapMarkers = true
 				end
 			end
 		end
@@ -668,7 +695,7 @@ function Exterminator.updateGridVisible(playerX,playerY)
 	currentGridC = Exterminator.getGridRef('C',playerX,playerY)
 	currentGridCx = Exterminator.getGridRef('Cx',playerX,playerY)	
 	currentGridCy = Exterminator.getGridRef('Cy',playerX,playerY)		
-	local gridRange = 1	-- total distance from center to get grids
+	local gridRange = 1	-- total grid count from center to get grids
 	local gridCount = 1 -- used for writing the grid table	
 
 	--populate min max X yet for marker grabs 
@@ -806,7 +833,7 @@ function Exterminator.CalculateBearing(startX, startY, endX, endY)
 	bearing = math.deg(bearing)
 	bearing = (bearing + 360) % 360
 	return bearing
-  end
+end
 
 function Exterminator.isGridPointValid(gridA,gridB,gridRef)	
 	if ExterminatorGrid[gridA][gridB] then

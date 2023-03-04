@@ -5,12 +5,21 @@ module Exterminator {
 	model ZombieScannerMK1
 	{
 		mesh = ZombieScannerMK1,
-		texture = ZombieScannerMK1,		
+		texture = ZombieScannerMK1,	
 	}
-
-		model ZombieScannerMK2
+	model ZombieScannerMK2
 	{
 		mesh = ZombieScannerMK2,
 		texture = ZombieScannerMK2,
+	}
+	model ZombieScannerMK1_ground
+	{
+		mesh = ZombieScannerMK1,
+		texture = ZombieScannerMK1,		
+	}
+	model ZombieScannerMK2_ground
+	{
+		mesh = ZombieScannerMK2,
+		texture = ZombieScannerMK2,	
 	}
 }
