@@ -75,8 +75,5 @@ A count is displayed to the user of zombies present
 - 1x Radio Receiver
 
 ## Installation Instructions
-Copy all of these files into the 
-
-""c:\users\<username>\Zomboid\Mods\Exterminator" 
-
-folder (create folder if it doesnt exist)
+Get it on steam workshop
+https://steamcommunity.com/sharedfiles/filedetails/?id=2941521363
